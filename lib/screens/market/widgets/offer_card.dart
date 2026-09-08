@@ -73,7 +73,7 @@ class OfferCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _statusColor.withOpacity(0.15),
+                    color: _statusColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: _statusColor),
                   ),
@@ -141,7 +141,7 @@ class OfferCard extends StatelessWidget {
                       style: const TextStyle(fontSize: 12),
                       overflow: TextOverflow.ellipsis),
                 ),
-                Icon(Icons.star, size: 14, color: AppColors.gold),
+                const Icon(Icons.star, size: 14, color: AppColors.gold),
                 const SizedBox(width: 2),
                 Text('${offer.sellerRating}',
                     style: const TextStyle(fontSize: 12)),

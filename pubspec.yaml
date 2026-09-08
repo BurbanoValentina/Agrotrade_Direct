@@ -13,6 +13,7 @@ dependencies:
   provider: ^6.1.2       # Manejo de estado de la app
   google_fonts: ^6.2.1   # Tipografías (serif en títulos, sans en cuerpo, como el mockup)
   intl: ^0.19.0          # Formato de moneda, fechas y toneladas
+  supabase_flutter: ^2.8.0 # Conexión backend Supabase (PostgreSQL, Auth, RLS)
 
 dev_dependencies:
   flutter_test:

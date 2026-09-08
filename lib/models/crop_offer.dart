@@ -30,6 +30,7 @@ extension OfferStatusLabel on OfferStatus {
 /// de este mismo modelo — así ninguna pantalla necesita cambiar.
 class CropOffer {
   final String id;
+  final String sellerId;
   final CropType cropType;
   final String variety; // ej. "Washed Arabica — Geisha"
   final String originRegion; // ej. "Huila"
@@ -46,6 +47,7 @@ class CropOffer {
 
   const CropOffer({
     required this.id,
+    this.sellerId = '',
     required this.cropType,
     required this.variety,
     required this.originRegion,
@@ -62,4 +64,47 @@ class CropOffer {
   });
 
   double get estimatedTotalUsd => askPricePerMt * volumeMt;
+
+  factory CropOffer.fromJson(Map<String, dynamic> json) {
+    final profile = json['profiles'] as Map<String, dynamic>?;
+    final typeStr = json['crop_type'] as String? ?? 'cafe';
+    final statusStr = json['status'] as String? ?? 'activa';
+
+    return CropOffer(
+      id: json['id'] as String,
+      sellerId: json['seller_id'] as String? ?? '',
+      cropType: typeStr == 'cacao' ? CropType.cacao : CropType.cafe,
+      variety: json['variety'] as String? ?? '',
+      originRegion: json['origin_region'] as String? ?? '',
+      originCountry: json['origin_country'] as String? ?? 'Colombia',
+      askPricePerMt: (json['ask_price_per_mt'] as num?)?.toDouble() ?? 0.0,
+      volumeMt: (json['volume_mt'] as num?)?.toDouble() ?? 0.0,
+      destinationCountry: json['destination_country'] as String? ?? '',
+      certifications: (json['certifications'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      sellerName: profile?['name'] as String? ?? 'Exportador Colombiano',
+      sellerRating: (profile?['rating'] as num?)?.toDouble() ?? 5.0,
+      sellerTrades: (profile?['completed_trades'] as num?)?.toInt() ?? 0,
+      status: _parseStatus(statusStr),
+      postedAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+    );
+  }
+
+  static OfferStatus _parseStatus(String status) {
+    switch (status) {
+      case 'negociando':
+        return OfferStatus.negociando;
+      case 'confirmada':
+        return OfferStatus.confirmada;
+      case 'enTransito':
+        return OfferStatus.enTransito;
+      case 'activa':
+      default:
+        return OfferStatus.activa;
+    }
+  }
 }

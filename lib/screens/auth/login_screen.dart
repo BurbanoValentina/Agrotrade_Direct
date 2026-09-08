@@ -57,10 +57,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 60),
                 _Logo(),
                 const SizedBox(height: 8),
-                Text(
+                const Text(
                   'Café y cacao, directo de Colombia a la UE',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 13,
                   ),

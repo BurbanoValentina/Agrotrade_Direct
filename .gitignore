@@ -53,6 +53,8 @@ replay_pid*
 .env
 .env.*
 !.env.example
+lib/core/constants/supabase_constants.dart
+!lib/core/constants/supabase_constants.dart.example
 
 # Symbolication related
 app.*.symbols

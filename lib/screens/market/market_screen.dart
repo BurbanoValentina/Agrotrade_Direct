@@ -57,38 +57,44 @@ class _MarketScreenState extends State<MarketScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                _FilterChip(
-                  label: 'All',
-                  selected: market.filter == MarketFilter.all,
-                  onTap: () => market.setFilter(MarketFilter.all),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Coffee',
-                  selected: market.filter == MarketFilter.cafe,
-                  onTap: () => market.setFilter(MarketFilter.cafe),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Cacao',
-                  selected: market.filter == MarketFilter.cacao,
-                  onTap: () => market.setFilter(MarketFilter.cacao),
-                ),
-              ],
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _FilterChip(
+                    label: 'All',
+                    selected: market.filter == MarketFilter.all,
+                    onTap: () => market.setFilter(MarketFilter.all),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'Coffee',
+                    selected: market.filter == MarketFilter.cafe,
+                    onTap: () => market.setFilter(MarketFilter.cafe),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'Cacao',
+                    selected: market.filter == MarketFilter.cacao,
+                    onTap: () => market.setFilter(MarketFilter.cacao),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 14),
-            const Row(
-              children: [
-                StatChip(label: 'Arabica ICE', value: '\$4,210', changePercent: 1.2),
-                SizedBox(width: 8),
-                StatChip(label: 'Cacao LME', value: '\$6,870', changePercent: 0.8),
-                SizedBox(width: 8),
-                StatChip(label: 'USD/EUR', value: '\$0.921', changePercent: -0.1),
-                SizedBox(width: 8),
-                StatChip(label: 'Robusta', value: '\$2,340', changePercent: 2.1),
-              ],
+            const SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  StatChip(label: 'Arabica ICE', value: '\$4,210', changePercent: 1.2),
+                  SizedBox(width: 8),
+                  StatChip(label: 'Cacao LME', value: '\$6,870', changePercent: 0.8),
+                  SizedBox(width: 8),
+                  StatChip(label: 'USD/EUR', value: '\$0.921', changePercent: -0.1),
+                  SizedBox(width: 8),
+                  StatChip(label: 'Robusta', value: '\$2,340', changePercent: 2.1),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             Expanded(
