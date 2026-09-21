@@ -10,7 +10,7 @@ import '../../widgets/stat_chip.dart';
 import 'widgets/counter_offer_sheet.dart';
 
 // Importación directa por paquete para evitar fallos de URI
-import '../../widgets/create_offer_sheet.dart';
+import 'widgets/create_offer_sheet.dart';
 import 'widgets/offer_card.dart';
 
 /// Pantalla "Live Market" — REQ-06 a REQ-13.

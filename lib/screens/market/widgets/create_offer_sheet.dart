@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../../models/crop_offer.dart';
+import '../../../../../core/theme/app_theme.dart';
+import '../../../../../models/crop_offer.dart';
 
 /// REQ-06 a REQ-10: Formulario para publicar una nueva oferta de café o cacao.
 Future<CropOffer?> showCreateOfferSheet(BuildContext context) {
