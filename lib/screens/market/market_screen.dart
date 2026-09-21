@@ -8,9 +8,8 @@ import '../../providers/market_provider.dart';
 import '../../widgets/role_toggle.dart';
 import '../../widgets/stat_chip.dart';
 import 'widgets/counter_offer_sheet.dart';
-
-// Importación directa por paquete para evitar fallos de URI
 import 'widgets/create_offer_sheet.dart';
+import 'widgets/filter_sheet.dart';
 import 'widgets/offer_card.dart';
 
 /// Pantalla "Live Market" — REQ-06 a REQ-13.
@@ -25,7 +24,6 @@ class _MarketScreenState extends State<MarketScreen> {
   @override
   void initState() {
     super.initState();
-    // Carga inicial de ofertas al terminar el renderizado del primer frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<MarketProvider>().loadOffers();
     });
@@ -38,7 +36,6 @@ class _MarketScreenState extends State<MarketScreen> {
     final isExporter = user?.role == UserRole.exportador;
 
     return Scaffold(
-      // Botón flotante para publicar ofertas (solo visible si el rol es Exportador)
       floatingActionButton: isExporter
           ? FloatingActionButton.extended(
               onPressed: () async {
@@ -89,18 +86,46 @@ class _MarketScreenState extends State<MarketScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Caja de búsqueda en tiempo real
-              TextField(
-                onChanged: market.setQuery,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: const InputDecoration(
-                  hintText: 'Buscar variedad, origen...',
-                  prefixIcon: Icon(Icons.search, color: AppColors.textMuted),
-                ),
+              // REQ-11 & REQ-12: Caja de Búsqueda y Botón de Filtro Avanzado
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      onChanged: market.setQuery,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                      decoration: const InputDecoration(
+                        hintText: 'Buscar variedad, origen...',
+                        prefixIcon:
+                            Icon(Icons.search, color: AppColors.textMuted),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.surfaceAlt,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.tune, color: AppColors.gold),
+                    onPressed: () async {
+                      final options = await showFilterSheet(
+                        context,
+                        initialOptions: market.filterOptions,
+                      );
+                      if (options != null && context.mounted) {
+                        context
+                            .read<MarketProvider>()
+                            .setAdvancedFilterOptions(options);
+                      }
+                    },
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
 
-              // Chips de filtro por tipo de producto (All / Coffee / Cacao)
+              // REQ-12: Chips de Filtro Rápido
               Row(
                 children: [
                   _FilterChip(
@@ -124,7 +149,7 @@ class _MarketScreenState extends State<MarketScreen> {
               ),
               const SizedBox(height: 14),
 
-              // Indicadores bursátiles / estadísticos
+              // Indicadores estadísticos
               const SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -151,7 +176,7 @@ class _MarketScreenState extends State<MarketScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Lista de ofertas activas
+              // Lista de ofertas
               Expanded(
                 child: market.isLoading
                     ? const Center(child: CircularProgressIndicator())
