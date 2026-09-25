@@ -1,13 +1,15 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/crop_offer.dart';
+import '../../models/negotiation_round.dart';
 import '../../models/purchase_request.dart';
 import 'offer_repository.dart';
 import 'repository_exception.dart';
 import 'supabase_error_mapper.dart';
 
 /// Implementación real de persistencia en Supabase (PostgreSQL).
-/// Cumple con REQ-11, REQ-13 (Lectura de ofertas) y REQ-14 (Envío de solicitud/contraoferta de compra).
+/// Cumple con REQ-11, REQ-13 (lectura de ofertas), REQ-14 (solicitud de compra)
+/// y REQ-15 a REQ-17 (contraofertas, aceptar/rechazar y confirmar vía RPC).
 class SupabaseOfferRepository implements OfferRepository {
   final SupabaseClient _supabase;
 
@@ -69,73 +71,91 @@ class SupabaseOfferRepository implements OfferRepository {
     }
   }
 
-  /// REQ-15: Permitir al exportador aceptar una solicitud de compra recibida.
-  @override
-  Future<bool> acceptPurchaseRequest(String negotiationId) async {
+  /// Ejecuta una función de negociación (RPC) y devuelve la negociación
+  /// actualizada. Las reglas (turno, rondas, estado) viven en la BD:
+  /// supabase/migrations/20260926000000_negotiation_flow.sql.
+  Future<PurchaseRequest> _negotiationRpc(String function, Map<String, dynamic> params) async {
     try {
-      final user = _supabase.auth.currentUser;
-      if (user == null) {
-        throw StateError('Debe iniciar sesión como exportador para aceptar solicitudes.');
-      }
+      final row = await _supabase.rpc(function, params: params);
+      return PurchaseRequest.fromJson(row as Map<String, dynamic>);
+    } catch (e) {
+      throw mapSupabaseError(e);
+    }
+  }
 
-      // 1. Actualizar el estado de la negociación a 'accepted'
+  static String? _clean(String? text) {
+    final trimmed = text?.trim();
+    return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+  }
+
+  /// REQ-16: contraoferta de quien tiene el turno.
+  @override
+  Future<PurchaseRequest> counterOffer({
+    required String negotiationId,
+    required double pricePerMt,
+    double? volumeMt,
+    String? message,
+  }) {
+    validatePurchaseRequestInput(
+      proposedPricePerMt: pricePerMt,
+      volumeMt: volumeMt,
+      notes: _clean(message),
+    );
+    return _negotiationRpc('counter_offer', {
+      'p_negotiation_id': negotiationId,
+      'p_price_per_mt': pricePerMt,
+      'p_volume_mt': volumeMt,
+      'p_message': _clean(message),
+    });
+  }
+
+  /// REQ-15: aceptar la propuesta vigente (debe ser tu turno).
+  @override
+  Future<PurchaseRequest> acceptPurchaseRequest(String negotiationId) {
+    return _negotiationRpc('accept_negotiation', {'p_negotiation_id': negotiationId});
+  }
+
+  /// REQ-15: rechazar la propuesta vigente (debe ser tu turno).
+  @override
+  Future<PurchaseRequest> rejectPurchaseRequest(String negotiationId, {String? reason}) {
+    return _negotiationRpc('reject_negotiation', {
+      'p_negotiation_id': negotiationId,
+      'p_reason': _clean(reason),
+    });
+  }
+
+  @override
+  Future<PurchaseRequest> cancelNegotiation(String negotiationId, {String? reason}) {
+    return _negotiationRpc('cancel_negotiation', {
+      'p_negotiation_id': negotiationId,
+      'p_reason': _clean(reason),
+    });
+  }
+
+  /// REQ-17: confirmar el acuerdo; se cierra cuando confirman ambas partes.
+  @override
+  Future<PurchaseRequest> confirmNegotiation(String negotiationId) {
+    return _negotiationRpc('confirm_negotiation', {'p_negotiation_id': negotiationId});
+  }
+
+  /// REQ-16 / REQ-19: historial de propuestas de la negociación.
+  @override
+  Future<List<NegotiationRound>> fetchNegotiationRounds(String negotiationId) async {
+    try {
       final response = await _supabase
-          .from('negotiations')
-          .update({
-            'status': 'accepted',
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
-          })
-          .eq('id', negotiationId)
-          .eq('seller_id', user.id)
-          .select('offer_id')
-          .single();
-
-      final offerId = response['offer_id'] as String?;
-
-      // 2. Actualizar el estado de la oferta a 'confirmada'
-      if (offerId != null) {
-        await _supabase
-            .from('offers')
-            .update({
-              'status': 'confirmada',
-              'updated_at': DateTime.now().toUtc().toIso8601String(),
-            })
-            .eq('id', offerId)
-            .eq('seller_id', user.id);
-      }
-
-      return true;
+          .from('negotiation_rounds')
+          .select()
+          .eq('negotiation_id', negotiationId)
+          .order('round_number');
+      return (response as List<dynamic>)
+          .map((json) => NegotiationRound.fromJson(json as Map<String, dynamic>))
+          .toList();
     } catch (e) {
-      return false;
+      throw mapSupabaseError(e);
     }
   }
 
-  /// REQ-15: Permitir al exportador rechazar una solicitud de compra recibida.
-  @override
-  Future<bool> rejectPurchaseRequest(String negotiationId, {String? reason}) async {
-    try {
-      final user = _supabase.auth.currentUser;
-      if (user == null) {
-        throw StateError('Debe iniciar sesión como exportador para rechazar solicitudes.');
-      }
-
-      await _supabase
-          .from('negotiations')
-          .update({
-            'status': 'rejected',
-            if (reason != null && reason.trim().isNotEmpty) 'notes': reason.trim(),
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
-          })
-          .eq('id', negotiationId)
-          .eq('seller_id', user.id);
-
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /// REQ-14 / REQ-15 / REQ-19: Obtener las solicitudes de negociación del usuario actual (My Deals).
+  /// REQ-14 / REQ-15 / REQ-19: negociaciones del usuario actual (My Deals).
   @override
   Future<List<PurchaseRequest>> fetchMyNegotiations() async {
     final user = _supabase.auth.currentUser;
@@ -157,7 +177,7 @@ class SupabaseOfferRepository implements OfferRepository {
           .map((json) => PurchaseRequest.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      return [];
+      throw mapSupabaseError(e);
     }
   }
 }

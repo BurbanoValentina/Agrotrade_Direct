@@ -43,6 +43,30 @@ Si el texto no es un número válido, hoy `double.tryParse` devuelve `null` y el
 
 ---
 
+## REQ-15 a REQ-17 — Pantalla "My Deals" (negociación estilo InDrive)
+
+Todo el backend está listo: ver el diagrama y la tabla de funciones en `supabase/README.md` → *Flujo de negociación*. La pestaña "My Deals" de `home_shell.dart` sigue siendo un placeholder.
+
+1. **Listado:** `offerRepository.fetchMyNegotiations()` (trae `offerVariety`, `sellerName`, `buyerName`). Etiqueta con `status.label`.
+2. **Botones según el estado** (con `userId = authProvider.currentUser!.id`):
+
+   | Condición | Botones |
+   | :--- | :--- |
+   | `neg.isTurnOf(userId)` | Aceptar · Rechazar · Contraofertar (solo si `neg.canCounter(userId)`) |
+   | `neg.status == pending/countered` y NO es su turno | "Esperando respuesta…" (+ Cancelar si es el importador) |
+   | `neg.needsConfirmationFrom(userId)` | Confirmar trato · Cancelar |
+   | `accepted` y ya confirmó | "Esperando confirmación de la otra parte" |
+   | `confirmed` | Trato cerrado (habilitar calificación, REQ-21) |
+   | `rejected` / `cancelled` | Mostrar `neg.closeReason` si existe |
+
+3. **Historial del ida y vuelta:** `fetchNegotiationRounds(neg.id)` → lista de `NegotiationRound` (precio, volumen, mensaje, quién propuso). Mostrar "Ronda X de 10".
+4. **Errores:** todos los métodos lanzan `RepositoryException`; mostrar `e.message` (ej. *"No es tu turno: espera la respuesta de la otra parte."*).
+5. Falta un provider para esta pantalla (ej. `DealsProvider`) que envuelva estos métodos, igual que `MarketProvider`.
+
+**Ojo:** el panel admin usa su propio `NegotiationStatus` (`pendiente`, `aceptada`, `rechazada`, `completada`) en `models/negotiation.dart`, distinto del de `models/purchase_request.dart` (`pending`, `countered`, `accepted`, `confirmed`, `rejected`, `cancelled`, que son los valores reales de la BD). Al conectar el panel a Supabase conviene usar el segundo.
+
+---
+
 ## Carga de ofertas (Market)
 
 `MarketProvider.loadOffers()` ya no se queda cargando para siempre si falla. Ahora expone `market.loadError`. Falta mostrarlo en `market_screen.dart` (mensaje + botón "Reintentar" que llame a `market.loadOffers()`), en lugar de la lista vacía.

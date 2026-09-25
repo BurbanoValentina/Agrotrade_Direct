@@ -19,6 +19,35 @@ Cada archivo de `migrations/` se llama `AAAAMMDDHHMMSS_descripcion.sql` (formato
 | `20260925020000_rbac_staff.sql` | Empleados admin con permisos (`staff_members`), `blocked_users`, `profiles.is_tester` y políticas de administrador (REQ-24, base de REQ-29 y REQ-33) |
 | `20260925030000_ratings_reports_admin.sql` | `ratings`, `user_reports`, `suspicious_activities` (con detección de precios anómalos), `platform_config` y `rpc('admin_dashboard_stats')` (REQ-23, base de REQ-21, REQ-22, REQ-33 y REQ-37) |
 | `20260925040000_purchase_request_rules.sql` | Reglas de la solicitud de compra con mensajes claros: volumen ≤ disponible, una solicitud activa por oferta, notas ≤ 500; completa `seller_id` desde la oferta (REQ-14) |
+| `20260926000000_negotiation_flow.sql` | Flujo estilo InDrive: `negotiation_rounds`, RPC `counter_offer` / `accept_negotiation` / `reject_negotiation` / `cancel_negotiation` / `confirm_negotiation`, confirmación doble, límite de 10 rondas, descuento de volumen (REQ-15, REQ-16, REQ-17) |
+
+## Flujo de negociación (REQ-14 a REQ-17)
+
+```
+Importador envía solicitud (INSERT en negotiations) ──► pending   (turno del exportador)
+  exportador: counter_offer ──► countered (turno del importador)
+  importador: counter_offer ──► pending   (turno del exportador)
+  quien tiene el turno: accept_negotiation ──► accepted
+                        reject_negotiation ──► rejected
+  importador (pending/countered) o cualquiera (accepted): cancel_negotiation ──► cancelled
+accepted: cada parte llama confirm_negotiation; con la 2.ª ──► confirmed
+```
+
+- **Turno:** `pending` → responde el exportador; `countered` → responde el importador. Nadie acepta su propia propuesta.
+- **Rondas:** máximo 10 (la solicitud cuenta como la 1). En la 10 solo se puede aceptar o rechazar. Historial en la tabla `negotiation_rounds`.
+- **Confirmación:** el trato se cierra cuando **ambas partes** confirman. Entonces se descuenta el volumen de la oferta (si llega a 0 → `confirmada`), se suma `completed_trades` a los dos y se rechazan solas las solicitudes vivas que ya no caben. Las calificaciones solo se permiten sobre tratos `confirmed`.
+- **Estado de la oferta:** pasa sola a `negociando` con la primera solicitud y vuelve a `activa` cuando no quedan negociaciones vivas.
+- La app **no puede** hacer `UPDATE` directo a `negotiations`: todo cambio va por estas funciones. Cada una devuelve la negociación actualizada o un error con el motivo (código `P0001`).
+
+| RPC | Parámetros | Quién |
+| :--- | :--- | :--- |
+| `counter_offer` | `p_negotiation_id`, `p_price_per_mt`, `p_volume_mt` (opcional), `p_message` (opcional) | Quien tiene el turno |
+| `accept_negotiation` | `p_negotiation_id` | Quien tiene el turno |
+| `reject_negotiation` | `p_negotiation_id`, `p_reason` (opcional) | Quien tiene el turno |
+| `cancel_negotiation` | `p_negotiation_id`, `p_reason` (opcional) | Importador (en curso) o cualquiera (aceptada) |
+| `confirm_negotiation` | `p_negotiation_id` | Cada parte, una vez |
+
+En Flutter ya están envueltas en `OfferRepository` (`counterOffer`, `acceptPurchaseRequest`, `rejectPurchaseRequest`, `cancelNegotiation`, `confirmNegotiation`, `fetchNegotiationRounds`) y `PurchaseRequest` trae los ayudantes `isTurnOf`, `canCounter`, `needsConfirmationFrom` para decidir qué botones mostrar.
 
 ## Roles y permisos
 
