@@ -67,6 +67,22 @@ Todo el backend está listo: ver el diagrama y la tabla de funciones en `supabas
 
 ---
 
+## REQ-19 / REQ-30 — Historial y exportación
+
+Backend listo (ver `supabase/README.md` → *Historial de operaciones*).
+
+1. **Pantalla de historial** (puede ir dentro de "My Deals" o "Profile"): `offerRepository.fetchOperationHistory(from:, to:, status:)` → lista de `OperationRecord` (ya trae `statusLabel`, `counterpartyName`, `totalUsd`, `myRole`, `closeReason`). Filtros sugeridos: rango de fechas y estado (confirmadas / rechazadas / canceladas).
+2. **Detalle de una operación:** `fetchNegotiationTimeline(id)` → lista de `TimelineEvent` en orden (`type`, `actorName`, `description`, `at`). Ideal para una línea de tiempo vertical.
+3. **Botones "Exportar CSV" / "Exportar PDF":**
+   ```dart
+   const exporter = OperationHistoryExporter();
+   final bytes = await exporter.toPdf(records, userName: user.name, from: from, to: to);
+   final name = exporter.fileName('pdf'); // historial_agrotrade_2026-09-26.pdf
+   ```
+   El exportador solo genera los bytes. Para guardar o compartir el archivo falta agregar un paquete de UI (sugerido: `share_plus` con `XFile.fromData(bytes, name: name, mimeType: ...)`, o `printing` para vista previa del PDF). MIME: `text/csv` y `application/pdf`.
+
+---
+
 ## Carga de ofertas (Market)
 
 `MarketProvider.loadOffers()` ya no se queda cargando para siempre si falla. Ahora expone `market.loadError`. Falta mostrarlo en `market_screen.dart` (mensaje + botón "Reintentar" que llame a `market.loadOffers()`), en lugar de la lista vacía.

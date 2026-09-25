@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/crop_offer.dart';
 import '../../models/negotiation_round.dart';
+import '../../models/operation_record.dart';
 import '../../models/purchase_request.dart';
 import 'offer_repository.dart';
 import 'repository_exception.dart';
@@ -149,6 +150,42 @@ class SupabaseOfferRepository implements OfferRepository {
           .order('round_number');
       return (response as List<dynamic>)
           .map((json) => NegotiationRound.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw mapSupabaseError(e);
+    }
+  }
+
+  /// REQ-19: operaciones cerradas del usuario (rpc my_operation_history).
+  @override
+  Future<List<OperationRecord>> fetchOperationHistory({
+    DateTime? from,
+    DateTime? to,
+    NegotiationStatus? status,
+  }) async {
+    validateHistoryStatus(status);
+    try {
+      final rows = await _supabase.rpc('my_operation_history', params: {
+        'p_from': from?.toUtc().toIso8601String(),
+        'p_to': to?.toUtc().toIso8601String(),
+        'p_status': status?.name,
+      });
+      return (rows as List<dynamic>)
+          .map((json) => OperationRecord.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw mapSupabaseError(e);
+    }
+  }
+
+  /// REQ-19: línea de tiempo de una operación (rpc negotiation_timeline).
+  @override
+  Future<List<TimelineEvent>> fetchNegotiationTimeline(String negotiationId) async {
+    try {
+      final rows = await _supabase
+          .rpc('negotiation_timeline', params: {'p_negotiation_id': negotiationId});
+      return (rows as List<dynamic>)
+          .map((json) => TimelineEvent.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
       throw mapSupabaseError(e);

@@ -20,6 +20,7 @@ Cada archivo de `migrations/` se llama `AAAAMMDDHHMMSS_descripcion.sql` (formato
 | `20260925030000_ratings_reports_admin.sql` | `ratings`, `user_reports`, `suspicious_activities` (con detección de precios anómalos), `platform_config` y `rpc('admin_dashboard_stats')` (REQ-23, base de REQ-21, REQ-22, REQ-33 y REQ-37) |
 | `20260925040000_purchase_request_rules.sql` | Reglas de la solicitud de compra con mensajes claros: volumen ≤ disponible, una solicitud activa por oferta, notas ≤ 500; completa `seller_id` desde la oferta (REQ-14) |
 | `20260926000000_negotiation_flow.sql` | Flujo estilo InDrive: `negotiation_rounds`, RPC `counter_offer` / `accept_negotiation` / `reject_negotiation` / `cancel_negotiation` / `confirm_negotiation`, confirmación doble, límite de 10 rondas, descuento de volumen (REQ-15, REQ-16, REQ-17) |
+| `20260926010000_operation_history.sql` | RPC `my_operation_history` y `negotiation_timeline` (REQ-19, base de REQ-30); impide borrar ofertas con tratos confirmados; corrige la regla de revisión de alertas/reportes ante borrados en cascada |
 
 ## Flujo de negociación (REQ-14 a REQ-17)
 
@@ -103,6 +104,17 @@ Si la base ya se creó a mano desde el SQL Editor, marcar primero la migración 
 ```bash
 supabase migration repair --status applied 20260925000000
 ```
+
+## Historial de operaciones (REQ-19 / REQ-30)
+
+| RPC | Parámetros (todos opcionales salvo el id) | Devuelve |
+| :--- | :--- | :--- |
+| `my_operation_history` | `p_from`, `p_to` (fechas), `p_status` (`confirmed` / `rejected` / `cancelled`), `p_all_users` (solo con `negotiationManagement`) | Operaciones cerradas del usuario: producto, contraparte, precio, volumen, total, rondas, fechas, motivo, `my_role` |
+| `negotiation_timeline` | `p_negotiation_id` | Eventos en orden: `propuesta`, `aceptada`, `confirmacion`, `confirmada`, `rechazada`, `cancelada` |
+
+En Flutter: `OfferRepository.fetchOperationHistory()` / `fetchNegotiationTimeline()` y, para exportar, `OperationHistoryExporter` (`lib/services/`) con `toCsv()` y `toPdf()`.
+
+Una oferta con tratos confirmados **no se puede eliminar** (se perdería el historial): se debe cambiar a estado `cerrada`.
 
 ## Backup y restauración (REQ-40)
 

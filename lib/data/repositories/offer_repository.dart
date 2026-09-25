@@ -1,5 +1,6 @@
 import '../../models/crop_offer.dart';
 import '../../models/negotiation_round.dart';
+import '../../models/operation_record.dart';
 import '../../models/purchase_request.dart';
 import '../mock/mock_data.dart';
 import 'repository_exception.dart';
@@ -59,6 +60,34 @@ abstract class OfferRepository {
 
   /// REQ-14 / REQ-15 / REQ-19: Consultar el listado de negociaciones del usuario.
   Future<List<PurchaseRequest>> fetchMyNegotiations();
+
+  /// REQ-19: operaciones cerradas del usuario (confirmadas, rechazadas y
+  /// canceladas), de la más reciente a la más antigua. Todos los filtros son
+  /// opcionales; [status] solo acepta confirmed, rejected o cancelled.
+  Future<List<OperationRecord>> fetchOperationHistory({
+    DateTime? from,
+    DateTime? to,
+    NegotiationStatus? status,
+  });
+
+  /// REQ-19: línea de tiempo de una operación (propuestas, aceptación,
+  /// confirmaciones y cierre), en orden cronológico.
+  Future<List<TimelineEvent>> fetchNegotiationTimeline(String negotiationId);
+}
+
+/// Estados que forman parte del historial de operaciones (REQ-19).
+const closedNegotiationStatuses = {
+  NegotiationStatus.confirmed,
+  NegotiationStatus.rejected,
+  NegotiationStatus.cancelled,
+};
+
+/// Lanza [RepositoryException] si [status] no es un estado del historial.
+void validateHistoryStatus(NegotiationStatus? status) {
+  if (status != null && !closedNegotiationStatuses.contains(status)) {
+    throw RepositoryException(
+        'Estado no válido para el historial: ${status.name} (usa confirmed, rejected o cancelled).');
+  }
 }
 
 /// Validación local de una solicitud antes de enviarla (evita una llamada a
@@ -385,5 +414,119 @@ class MockOfferRepository implements OfferRepository {
     await Future.delayed(const Duration(milliseconds: 300));
     return List.unmodifiable(_negotiations.where(
         (n) => n.buyerId == currentUserId || n.sellerId == currentUserId));
+  }
+
+  static String _demoName(String userId) => switch (userId) {
+        demoBuyerId => 'Importador Demo',
+        demoSellerId => 'Exportador Demo',
+        _ => userId,
+      };
+
+  @override
+  Future<List<OperationRecord>> fetchOperationHistory({
+    DateTime? from,
+    DateTime? to,
+    NegotiationStatus? status,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    validateHistoryStatus(status);
+
+    final records = <OperationRecord>[];
+    for (final n in _negotiations) {
+      if (!closedNegotiationStatuses.contains(n.status)) continue;
+      if (n.buyerId != currentUserId && n.sellerId != currentUserId) continue;
+      if (status != null && n.status != status) continue;
+      final closedAt = n.confirmedAt ?? n.updatedAt;
+      if (from != null && closedAt.isBefore(from)) continue;
+      if (to != null && closedAt.isAfter(to)) continue;
+
+      final offer = _offer(n.offerId);
+      final isBuyer = n.buyerId == currentUserId;
+      records.add(OperationRecord(
+        negotiationId: n.id,
+        offerId: n.offerId,
+        cropType: offer?.cropType.name ?? 'cafe',
+        variety: offer?.variety ?? '',
+        originRegion: offer?.originRegion ?? '',
+        destinationCountry: offer?.destinationCountry ?? '',
+        myRole: isBuyer ? 'comprador' : 'vendedor',
+        buyerName: _demoName(n.buyerId),
+        sellerName: offer?.sellerName ?? _demoName(n.sellerId),
+        counterpartyName:
+            isBuyer ? (offer?.sellerName ?? _demoName(n.sellerId)) : _demoName(n.buyerId),
+        status: n.status,
+        statusLabel: n.status.label,
+        pricePerMt: n.proposedPricePerMt,
+        volumeMt: n.requestedVolumeMt,
+        totalUsd: n.estimatedTotalUsd,
+        roundCount: n.roundCount,
+        createdAt: n.createdAt,
+        closedAt: closedAt,
+        closeReason: n.closeReason,
+      ));
+    }
+    records.sort((a, b) => b.closedAt.compareTo(a.closedAt));
+    return records;
+  }
+
+  @override
+  Future<List<TimelineEvent>> fetchNegotiationTimeline(String negotiationId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final n = _myNegotiation(negotiationId);
+
+    final events = <TimelineEvent>[
+      for (final r in _rounds.where((r) => r.negotiationId == negotiationId))
+        TimelineEvent(
+          at: r.createdAt,
+          type: 'propuesta',
+          actorId: r.proposedBy,
+          actorName: _demoName(r.proposedBy ?? ''),
+          description: (r.roundNumber == 1
+                  ? 'Solicitud inicial: ${r.pricePerMt} USD/MT por ${r.volumeMt} MT'
+                  : 'Ronda ${r.roundNumber}: contraoferta de ${r.pricePerMt} USD/MT por ${r.volumeMt} MT') +
+              (r.message == null ? '' : ' — "${r.message}"'),
+          pricePerMt: r.pricePerMt,
+          volumeMt: r.volumeMt,
+        ),
+      if (n.acceptedAt != null)
+        TimelineEvent(
+          at: n.acceptedAt!,
+          type: 'aceptada',
+          description: 'Propuesta aceptada; falta la confirmación de ambas partes',
+        ),
+      if (n.buyerConfirmedAt != null)
+        TimelineEvent(
+          at: n.buyerConfirmedAt!,
+          type: 'confirmacion',
+          actorId: n.buyerId,
+          actorName: _demoName(n.buyerId),
+          description: 'Confirmó el trato (comprador)',
+        ),
+      if (n.sellerConfirmedAt != null)
+        TimelineEvent(
+          at: n.sellerConfirmedAt!,
+          type: 'confirmacion',
+          actorId: n.sellerId,
+          actorName: _demoName(n.sellerId),
+          description: 'Confirmó el trato (vendedor)',
+        ),
+      if (n.status == NegotiationStatus.confirmed)
+        TimelineEvent(
+          at: n.confirmedAt ?? n.updatedAt,
+          type: 'confirmada',
+          description: 'Trato confirmado por ambas partes',
+        ),
+      if (n.status == NegotiationStatus.rejected || n.status == NegotiationStatus.cancelled)
+        TimelineEvent(
+          at: n.updatedAt,
+          type: n.status == NegotiationStatus.rejected ? 'rechazada' : 'cancelada',
+          description: (n.status == NegotiationStatus.rejected
+                  ? 'Negociación rechazada'
+                  : 'Negociación cancelada') +
+              (n.closeReason == null ? '' : ': ${n.closeReason}'),
+        ),
+    ];
+    events.sort((a, b) => a.at.compareTo(b.at));
+    return events;
   }
 }
