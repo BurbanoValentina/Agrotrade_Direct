@@ -90,7 +90,7 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Eliminar trigger previo si existe y recrearlo
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -107,7 +107,7 @@ BEGIN
   NEW.updated_at = timezone('utc'::text, now());
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 DROP TRIGGER IF EXISTS set_profiles_updated_at ON public.profiles;
 CREATE TRIGGER set_profiles_updated_at
@@ -142,7 +142,14 @@ DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 CREATE POLICY "Users can update their own profile"
   ON public.profiles FOR UPDATE
   TO authenticated
-  USING (auth.uid() = id);
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+
+-- El usuario solo puede editar sus datos básicos. role, rating y
+-- completed_trades los gestiona el sistema (evita auto-calificarse o
+-- cambiarse de exportador a importador).
+REVOKE UPDATE ON public.profiles FROM authenticated, anon;
+GRANT UPDATE (name, company_name, country) ON public.profiles TO authenticated;
 
 -- Políticas para offers:
 DROP POLICY IF EXISTS "Offers are viewable by authenticated users" ON public.offers;
@@ -164,7 +171,8 @@ DROP POLICY IF EXISTS "Sellers can update their own offers" ON public.offers;
 CREATE POLICY "Sellers can update their own offers"
   ON public.offers FOR UPDATE
   TO authenticated
-  USING (auth.uid() = seller_id);
+  USING (auth.uid() = seller_id)
+  WITH CHECK (auth.uid() = seller_id);
 
 -- Políticas para negotiations (REQ-14):
 DROP POLICY IF EXISTS "Importers can create purchase requests" ON public.negotiations;
@@ -173,7 +181,16 @@ CREATE POLICY "Importers can create purchase requests"
   TO authenticated
   WITH CHECK (
     auth.uid() = buyer_id AND
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'importador')
+    buyer_id <> seller_id AND
+    status = 'pending' AND
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'importador') AND
+    -- seller_id debe ser el dueño real de la oferta, y la oferta debe estar abierta
+    EXISTS (
+      SELECT 1 FROM public.offers o
+      WHERE o.id = negotiations.offer_id
+        AND o.seller_id = negotiations.seller_id
+        AND o.status IN ('activa', 'negociando')
+    )
   );
 
 DROP POLICY IF EXISTS "Parties involved can view negotiations" ON public.negotiations;
@@ -186,5 +203,56 @@ DROP POLICY IF EXISTS "Parties involved can update negotiations" ON public.negot
 CREATE POLICY "Parties involved can update negotiations"
   ON public.negotiations FOR UPDATE
   TO authenticated
-  USING (auth.uid() = buyer_id OR auth.uid() = seller_id);
+  USING (auth.uid() = buyer_id OR auth.uid() = seller_id)
+  WITH CHECK (auth.uid() = buyer_id OR auth.uid() = seller_id);
+
+-- ==============================================================================
+-- 8. REGLAS DE NEGOCIO: transiciones de estado en negotiations (REQ-15 a REQ-17)
+-- ==============================================================================
+-- RLS decide QUIÉN puede actualizar una fila, pero no QUÉ puede cambiar.
+-- Este trigger lo restringe:
+--   * Vendedor: pending -> accepted | rejected | countered
+--   * Comprador: pending | countered -> cancelled
+--   * Nadie puede modificar oferta, partes, precio ni volumen ya enviados.
+-- Las operaciones sin usuario (service_role / SQL Editor) no se restringen.
+CREATE OR REPLACE FUNCTION public.enforce_negotiation_update()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.offer_id IS DISTINCT FROM OLD.offer_id
+     OR NEW.buyer_id IS DISTINCT FROM OLD.buyer_id
+     OR NEW.seller_id IS DISTINCT FROM OLD.seller_id
+     OR NEW.proposed_price_per_mt IS DISTINCT FROM OLD.proposed_price_per_mt
+     OR NEW.requested_volume_mt IS DISTINCT FROM OLD.requested_volume_mt
+     OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+    RAISE EXCEPTION 'Solo se puede cambiar el estado o las notas de una negociación';
+  END IF;
+
+  IF NEW.status IS DISTINCT FROM OLD.status THEN
+    IF v_uid = OLD.seller_id
+       AND OLD.status = 'pending'
+       AND NEW.status IN ('accepted', 'rejected', 'countered') THEN
+      NULL; -- permitido
+    ELSIF v_uid = OLD.buyer_id
+       AND OLD.status IN ('pending', 'countered')
+       AND NEW.status = 'cancelled' THEN
+      NULL; -- permitido
+    ELSE
+      RAISE EXCEPTION 'Transición de estado no permitida: % -> %', OLD.status, NEW.status;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+DROP TRIGGER IF EXISTS enforce_negotiation_update ON public.negotiations;
+CREATE TRIGGER enforce_negotiation_update
+  BEFORE UPDATE ON public.negotiations
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_negotiation_update();
 
