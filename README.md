@@ -112,5 +112,20 @@ Creemos que implementando una plataforma móvil accesible en Flutter con negocia
 
 1. **Clonar el repositorio:**
    ```bash
-   git clone [https://github.com/tu-usuario/Agrotrade_Direct.git](https://github.com/tu-usuario/Agrotrade_Direct.git)
+   git clone https://github.com/BurbanoValentina/Agrotrade_Direct.git
    cd Agrotrade_Direct
+   ```
+
+2. **Configurar credenciales de Supabase** (el archivo real está en `.gitignore` y no se sube al repo):
+   ```bash
+   cp lib/core/constants/supabase_constants.dart.example lib/core/constants/supabase_constants.dart
+   ```
+   Abre `supabase_constants.dart` y reemplaza `https://TU_PROYECTO.supabase.co` y `TU_ANON_PUBLIC_KEY` con los valores de *Supabase → Project Settings → API*. Usa siempre la clave **anon / publishable**, nunca la `service_role`.
+
+3. **Preparar la base de datos** (solo la primera vez): en el *SQL Editor* de Supabase ejecuta `supabase/schema.sql`. Para datos de prueba, crea primero el usuario `exportador.demo@agrotrade.com` desde *Authentication → Users → Add user* (con *Auto Confirm User*) y luego ejecuta `supabase/seed.sql`.
+
+4. **Instalar dependencias y ejecutar:**
+   ```bash
+   flutter pub get
+   flutter run
+   ```
