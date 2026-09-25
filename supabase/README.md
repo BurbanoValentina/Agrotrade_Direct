@@ -17,6 +17,7 @@ Cada archivo de `migrations/` se llama `AAAAMMDDHHMMSS_descripcion.sql` (formato
 | `20260925000000_base.sql` | Tablas `profiles`, `offers`, `negotiations`, triggers y políticas RLS (REQ-14, REQ-15, REQ-23, REQ-24) |
 | `20260925010000_audit_log.sql` | Tabla `audit_log` y triggers que registran cambios de precio, volumen y estado en `offers` y `negotiations` (REQ-32) |
 | `20260925020000_rbac_staff.sql` | Empleados admin con permisos (`staff_members`), `blocked_users`, `profiles.is_tester` y políticas de administrador (REQ-24, base de REQ-29 y REQ-33) |
+| `20260925030000_ratings_reports_admin.sql` | `ratings`, `user_reports`, `suspicious_activities` (con detección de precios anómalos), `platform_config` y `rpc('admin_dashboard_stats')` (REQ-23, base de REQ-21, REQ-22, REQ-33 y REQ-37) |
 
 ## Roles y permisos
 
