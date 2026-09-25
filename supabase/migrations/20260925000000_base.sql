@@ -2,6 +2,9 @@
 -- AgroTrade Direct — Esquema de Base de Datos para Supabase (PostgreSQL)
 -- Diseñado para: RiTech SAS | Rol: Backend & Database Engineer (Johan Delgado)
 -- Cobertura: REQ-02 a REQ-19 (Perfiles, Catálogo de Commodities y Negociación P2P)
+--
+-- Migración base (0001). No modificar una vez aplicada: los cambios nuevos van
+-- en una migración nueva dentro de supabase/migrations/ (ver supabase/README.md).
 -- ==============================================================================
 
 -- 1. EXTENSIONES

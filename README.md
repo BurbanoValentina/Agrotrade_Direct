@@ -122,7 +122,7 @@ Creemos que implementando una plataforma móvil accesible en Flutter con negocia
    ```
    Abre `supabase_constants.dart` y reemplaza `https://TU_PROYECTO.supabase.co` y `TU_ANON_PUBLIC_KEY` con los valores de *Supabase → Project Settings → API*. Usa siempre la clave **anon / publishable**, nunca la `service_role`.
 
-3. **Preparar la base de datos** (solo la primera vez): en el *SQL Editor* de Supabase ejecuta `supabase/schema.sql`. Para datos de prueba, crea primero el usuario `exportador.demo@agrotrade.com` desde *Authentication → Users → Add user* (con *Auto Confirm User*) y luego ejecuta `supabase/seed.sql`.
+3. **Preparar la base de datos**: en el *SQL Editor* de Supabase ejecuta, en orden, los archivos de `supabase/migrations/` que aún no se hayan aplicado. Para datos de prueba, crea primero el usuario `exportador.demo@agrotrade.com` desde *Authentication → Users → Add user* (con *Auto Confirm User*) y luego ejecuta `supabase/seed.sql`. Detalles en [`supabase/README.md`](supabase/README.md).
 
 4. **Instalar dependencias y ejecutar:**
    ```bash
