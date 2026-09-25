@@ -74,6 +74,37 @@ Si la base ya se creó a mano desde el SQL Editor, marcar primero la migración 
 supabase migration repair --status applied 20260925000000
 ```
 
+## Backup y restauración (REQ-40)
+
+Rutina manual con los scripts de `scripts/`. Requieren `pg_dump` y `psql` versión 15 o superior (vienen con PostgreSQL; basta la versión portable "binaries").
+
+**Cadena de conexión:** Dashboard → **Connect** → **Session pooler** → copiar la URI y reemplazar `[YOUR-PASSWORD]` por la contraseña de la base. No se guarda en el repositorio: se pega cuando el script la pide o se deja en la variable de entorno `SUPABASE_DB_URL` de la sesión.
+
+### Hacer un backup
+
+```powershell
+.\scripts\backup_db.ps1 -PgBin "C:\ruta\a\pgsql\bin"
+```
+
+Crea `backups/AAAA-MM-DD_HHMM/` con `data.sql` (datos de public), `auth.sql` (usuarios), `schema.sql` (referencia) y `manifest.txt` (conteo de filas por tabla).
+
+> ⚠️ Los backups contienen correos y datos de usuarios. La carpeta `backups/` está en `.gitignore`: **nunca** subirla al repositorio (es público). Guardarla en un lugar privado.
+
+Frecuencia recomendada: antes de cada entrega/demo y antes de aplicar una migración nueva.
+
+### Restaurar (ej. si se pierde o daña el proyecto)
+
+1. Crear un proyecto de Supabase nuevo (o usar uno vacío).
+2. Aplicar **en orden** todas las migraciones de `supabase/migrations/`.
+3. Ejecutar:
+   ```powershell
+   .\scripts\restore_db.ps1 -BackupDir backups\AAAA-MM-DD_HHMM -PgBin "C:\ruta\a\pgsql\bin"
+   ```
+4. Comparar los conteos que muestra el script con `manifest.txt`.
+5. Actualizar `supabase_constants.dart` con la URL y anon key del proyecto nuevo.
+
+El script se niega a restaurar sobre una base que ya tiene usuarios u ofertas, pide escribir el host destino para confirmar y carga todo en una sola transacción (si algo falla, no queda nada a medias).
+
 ## Datos de prueba
 
 1. Crear el usuario `exportador.demo@agrotrade.com` / `password123` en *Authentication → Users → Add user* (marcar *Auto Confirm User*).
