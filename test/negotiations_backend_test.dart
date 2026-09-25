@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:agrotrade_direct/data/repositories/offer_repository.dart';
+import 'package:agrotrade_direct/data/repositories/repository_exception.dart';
 import 'package:agrotrade_direct/models/purchase_request.dart';
 
 void main() {
@@ -11,13 +12,11 @@ void main() {
     });
 
     test('REQ-14: El importador puede enviar una solicitud de compra / contraoferta', () async {
-      // 1. El importador envía una solicitud sobre una oferta
-      final success = await repository.sendCounterOffer(
+      // 1. El importador envía una solicitud sobre una oferta (sin volumen)
+      await repository.sendCounterOffer(
         offerId: 'off-001',
         proposedPricePerMt: 7800.0,
       );
-
-      expect(success, isTrue, reason: 'La solicitud debe enviarse exitosamente');
 
       // 2. Verificar que la negociación queda registrada con estado 'pending'
       final negotiations = await repository.fetchMyNegotiations();
@@ -27,6 +26,94 @@ void main() {
       expect(latest.offerId, equals('off-001'));
       expect(latest.proposedPricePerMt, equals(7800.0));
       expect(latest.status, equals(NegotiationStatus.pending));
+      // Sin volumen explícito se pide el volumen completo de la oferta (22 MT).
+      expect(latest.requestedVolumeMt, equals(22.0));
+    });
+
+    test('REQ-14: La solicitud guarda volumen parcial y notas', () async {
+      await repository.sendCounterOffer(
+        offerId: 'off-001',
+        proposedPricePerMt: 8000.0,
+        volumeMt: 10,
+        notes: 'Entrega FOB Buenaventura',
+      );
+
+      final latest = (await repository.fetchMyNegotiations()).last;
+      expect(latest.requestedVolumeMt, equals(10.0));
+      expect(latest.notes, equals('Entrega FOB Buenaventura'));
+    });
+
+    group('REQ-14: Rechazos con mensaje claro', () {
+      Future<void> expectRejected(Future<void> Function() send, String messagePart) {
+        return expectLater(
+          send(),
+          throwsA(isA<RepositoryException>()
+              .having((e) => e.message, 'message', contains(messagePart))),
+        );
+      }
+
+      test('precio cero o negativo', () {
+        return expectRejected(
+          () => repository.sendCounterOffer(offerId: 'off-001', proposedPricePerMt: 0),
+          'precio propuesto debe ser mayor que cero',
+        );
+      });
+
+      test('volumen cero', () {
+        return expectRejected(
+          () => repository.sendCounterOffer(
+              offerId: 'off-001', proposedPricePerMt: 8000, volumeMt: 0),
+          'volumen solicitado debe ser mayor que cero',
+        );
+      });
+
+      test('volumen mayor al disponible', () {
+        return expectRejected(
+          () => repository.sendCounterOffer(
+              offerId: 'off-001', proposedPricePerMt: 8000, volumeMt: 99),
+          'supera el disponible',
+        );
+      });
+
+      test('notas de más de 500 caracteres', () {
+        return expectRejected(
+          () => repository.sendCounterOffer(
+              offerId: 'off-001', proposedPricePerMt: 8000, notes: 'x' * 501),
+          '500 caracteres',
+        );
+      });
+
+      test('oferta que ya no recibe solicitudes', () {
+        // off-004 está confirmada en los datos mock.
+        return expectRejected(
+          () => repository.sendCounterOffer(offerId: 'off-004', proposedPricePerMt: 5000),
+          'ya no recibe solicitudes',
+        );
+      });
+
+      test('oferta inexistente', () {
+        return expectRejected(
+          () => repository.sendCounterOffer(offerId: 'no-existe', proposedPricePerMt: 5000),
+          'no existe',
+        );
+      });
+
+      test('solicitud duplicada mientras la anterior sigue activa', () async {
+        await repository.sendCounterOffer(offerId: 'off-001', proposedPricePerMt: 8000);
+        await expectRejected(
+          () => repository.sendCounterOffer(offerId: 'off-001', proposedPricePerMt: 7900),
+          'Ya tienes una solicitud activa',
+        );
+      });
+
+      test('se puede volver a solicitar si la anterior fue rechazada', () async {
+        await repository.sendCounterOffer(offerId: 'off-001', proposedPricePerMt: 8000);
+        final first = (await repository.fetchMyNegotiations()).last;
+        await repository.rejectPurchaseRequest(first.id);
+
+        await repository.sendCounterOffer(offerId: 'off-001', proposedPricePerMt: 8200);
+        expect((await repository.fetchMyNegotiations()).length, equals(2));
+      });
     });
 
     test('REQ-15: El exportador puede aceptar una solicitud de compra', () async {

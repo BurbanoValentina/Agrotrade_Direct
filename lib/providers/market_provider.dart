@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../data/repositories/offer_repository.dart';
+import '../data/repositories/repository_exception.dart';
 import '../models/crop_offer.dart';
 
 enum MarketFilter { all, cafe, cacao }
@@ -17,9 +18,18 @@ class MarketProvider extends ChangeNotifier {
   String _query = '';
   bool _isLoading = false;
 
+  String? _loadError;
+  String? _lastError;
+
   bool get isLoading => _isLoading;
   MarketFilter get filter => _filter;
   String get query => _query;
+
+  /// Motivo por el que falló la última carga de ofertas (null si cargó bien).
+  String? get loadError => _loadError;
+
+  /// Motivo por el que falló la última solicitud enviada (null si se envió).
+  String? get lastError => _lastError;
 
   List<CropOffer> get visibleOffers {
     return _allOffers.where((offer) {
@@ -37,10 +47,16 @@ class MarketProvider extends ChangeNotifier {
 
   Future<void> loadOffers() async {
     _isLoading = true;
+    _loadError = null;
     notifyListeners();
-    _allOffers = await _repository.fetchOffers();
-    _isLoading = false;
-    notifyListeners();
+    try {
+      _allOffers = await _repository.fetchOffers();
+    } on RepositoryException catch (e) {
+      _loadError = e.message;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   void setFilter(MarketFilter filter) {
@@ -53,10 +69,26 @@ class MarketProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> sendCounterOffer(String offerId, double proposedPrice) {
-    return _repository.sendCounterOffer(
-      offerId: offerId,
-      proposedPricePerMt: proposedPrice,
-    );
+  /// REQ-14: envía una solicitud de compra. Devuelve `true` si se envió; si no,
+  /// el motivo queda en [lastError] para mostrarlo al usuario.
+  Future<bool> sendCounterOffer(
+    String offerId,
+    double proposedPrice, {
+    double? volumeMt,
+    String? notes,
+  }) async {
+    try {
+      await _repository.sendCounterOffer(
+        offerId: offerId,
+        proposedPricePerMt: proposedPrice,
+        volumeMt: volumeMt,
+        notes: notes,
+      );
+      _lastError = null;
+      return true;
+    } on RepositoryException catch (e) {
+      _lastError = e.message;
+      return false;
+    }
   }
 }

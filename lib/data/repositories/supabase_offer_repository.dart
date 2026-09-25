@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/crop_offer.dart';
 import '../../models/purchase_request.dart';
 import 'offer_repository.dart';
+import 'repository_exception.dart';
+import 'supabase_error_mapper.dart';
 
 /// Implementación real de persistencia en Supabase (PostgreSQL).
 /// Cumple con REQ-11, REQ-13 (Lectura de ofertas) y REQ-14 (Envío de solicitud/contraoferta de compra).
@@ -26,50 +28,44 @@ class SupabaseOfferRepository implements OfferRepository {
 
       return list;
     } catch (e) {
-      // Si falla la conexión remota o la tabla aún está vacía, relanza o maneja
-      rethrow;
+      throw mapSupabaseError(e);
     }
   }
 
-  /// REQ-14: Enviar solicitud de compra o contraoferta sobre una oferta.
-  /// Inserta un registro con estado 'pending' en la tabla `negotiations`.
+  /// REQ-14: Enviar solicitud de compra sobre una oferta.
+  ///
+  /// Inserta en `negotiations`; la BD completa `seller_id` (y el volumen si no
+  /// se envía) a partir de la oferta y valida todas las reglas, devolviendo el
+  /// motivo exacto si la rechaza (trigger validate_purchase_request).
   @override
-  Future<bool> sendCounterOffer({
+  Future<void> sendCounterOffer({
     required String offerId,
     required double proposedPricePerMt,
     double? volumeMt,
     String? notes,
   }) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) {
+      throw const RepositoryException('Debes iniciar sesión para enviar una solicitud de compra.');
+    }
+
+    final trimmedNotes = notes?.trim();
+    validatePurchaseRequestInput(
+      proposedPricePerMt: proposedPricePerMt,
+      volumeMt: volumeMt,
+      notes: trimmedNotes,
+    );
+
     try {
-      final user = _supabase.auth.currentUser;
-      if (user == null) {
-        throw StateError('Debe iniciar sesión para enviar una solicitud de compra.');
-      }
-
-      // 1. Obtener los datos base de la oferta para conocer el vendedor y volumen
-      final offerRow = await _supabase
-          .from('offers')
-          .select('seller_id, volume_mt')
-          .eq('id', offerId)
-          .single();
-
-      final sellerId = offerRow['seller_id'] as String;
-      final requestedVolume = volumeMt ?? (offerRow['volume_mt'] as num).toDouble();
-
-      // 2. Registrar la solicitud en la tabla negotiations (REQ-14)
       await _supabase.from('negotiations').insert({
         'offer_id': offerId,
         'buyer_id': user.id,
-        'seller_id': sellerId,
         'proposed_price_per_mt': proposedPricePerMt,
-        'requested_volume_mt': requestedVolume,
-        'notes': notes,
-        'status': 'pending',
+        if (volumeMt != null) 'requested_volume_mt': volumeMt,
+        if (trimmedNotes != null && trimmedNotes.isNotEmpty) 'notes': trimmedNotes,
       });
-
-      return true;
     } catch (e) {
-      return false;
+      throw mapSupabaseError(e);
     }
   }
 
