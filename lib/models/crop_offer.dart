@@ -39,6 +39,10 @@ class CropOffer {
   final double volumeMt;
   final String destinationCountry;
   final List<String> certifications;
+
+  /// REQ-36: certificaciones de [certifications] que el vendedor tiene
+  /// verificadas y vigentes (campo calculado `verified_certifications`).
+  final List<String> verifiedCertifications;
   final String sellerName;
   final double sellerRating;
   final int sellerTrades;
@@ -56,6 +60,7 @@ class CropOffer {
     required this.volumeMt,
     required this.destinationCountry,
     required this.certifications,
+    this.verifiedCertifications = const [],
     required this.sellerName,
     required this.sellerRating,
     required this.sellerTrades,
@@ -64,6 +69,10 @@ class CropOffer {
   });
 
   double get estimatedTotalUsd => askPricePerMt * volumeMt;
+
+  /// Si la certificación [name] de esta oferta está verificada (REQ-36).
+  bool isCertificationVerified(String name) => verifiedCertifications
+      .any((v) => v.trim().toLowerCase() == name.trim().toLowerCase());
 
   factory CropOffer.fromJson(Map<String, dynamic> json) {
     final profile = json['profiles'] as Map<String, dynamic>?;
@@ -81,6 +90,10 @@ class CropOffer {
       volumeMt: (json['volume_mt'] as num?)?.toDouble() ?? 0.0,
       destinationCountry: json['destination_country'] as String? ?? '',
       certifications: (json['certifications'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      verifiedCertifications: (json['verified_certifications'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           const [],

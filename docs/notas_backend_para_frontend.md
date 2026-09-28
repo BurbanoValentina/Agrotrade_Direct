@@ -93,6 +93,20 @@ Pendiente de UI (opcional): hoy la validación del formulario acepta contraseña
 
 ---
 
+## REQ-36 — Certificaciones verificadas
+
+Backend listo (ver `supabase/README.md` → *Certificaciones*). Repositorio: `context.read<CertificationRepository>()`.
+
+1. **Sello en las ofertas (Market):** en `offer_card.dart`, al pintar cada chip de `offer.certifications`, usar `offer.isCertificationVerified(name)` para mostrar un ícono de verificado (ej. `Icons.verified`). Ya viene en `fetchOffers()`, sin llamadas extra.
+2. **"Mis certificados" (exportador, en Profile):**
+   - Elegir el PDF: falta un paquete de UI, sugerido `file_picker` (`FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf'], withData: true)` → `bytes`).
+   - `uploadCertification(name:, pdfBytes:, certificateNumber:, validUntil:)`; listar con `fetchMyCertifications()` mostrando `status.label` y `rejectionReason`.
+   - Borrar solo pendientes/rechazados (`deleteCertification`).
+3. **Revisión (panel admin, permiso `offerManagement`):** lista con `fetchPendingCertifications()` (trae `sellerName`), botón "Ver PDF" con `getCertificationFileUrl(cert)` (abrir con `url_launcher`), y aprobar/rechazar con `reviewCertification(id, approve:, reason:)` (motivo obligatorio al rechazar).
+4. Errores: `RepositoryException.message` (ej. *"El PDF no puede superar los 5 MB."*, *"El archivo debe ser un PDF."*).
+
+---
+
 ## Carga de ofertas (Market)
 
 `MarketProvider.loadOffers()` ya no se queda cargando para siempre si falla. Ahora expone `market.loadError`. Falta mostrarlo en `market_screen.dart` (mensaje + botón "Reintentar" que llame a `market.loadOffers()`), en lugar de la lista vacía.

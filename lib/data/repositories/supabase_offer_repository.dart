@@ -22,7 +22,7 @@ class SupabaseOfferRepository implements OfferRepository {
     try {
       final response = await _supabase
           .from('offers')
-          .select('*, profiles:seller_id(name, rating, completed_trades)')
+          .select('*, verified_certifications, profiles:seller_id(name, rating, completed_trades)')
           .order('created_at', ascending: false);
 
       final list = (response as List<dynamic>)

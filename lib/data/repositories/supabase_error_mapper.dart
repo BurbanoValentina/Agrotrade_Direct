@@ -37,12 +37,38 @@ RepositoryException mapSupabaseError(Object error) {
     return _mapAuthError(error);
   }
 
+  if (error is StorageException) {
+    return _mapStorageError(error);
+  }
+
   debugPrint('Error no controlado en repositorio: $error');
   return const RepositoryException(_connectionMessage);
 }
 
 const _connectionMessage =
     'No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.';
+
+/// Errores de Supabase Storage (subida y descarga de archivos).
+RepositoryException _mapStorageError(StorageException error) {
+  final text = '${error.error} ${error.message}'.toLowerCase();
+  if (error.statusCode == '413' || text.contains('maximum allowed size') || text.contains('too large')) {
+    return const RepositoryException('El archivo supera el tamaño máximo permitido (5 MB).');
+  }
+  if (error.statusCode == '415' || text.contains('mime')) {
+    return const RepositoryException('Tipo de archivo no permitido: debe ser un PDF.');
+  }
+  if (error.statusCode == '403' || text.contains('row-level security') || text.contains('unauthorized')) {
+    return const RepositoryException('No tienes permiso para esta acción con archivos.');
+  }
+  if (error.statusCode == '409' || text.contains('already exists') || text.contains('duplicate')) {
+    return const RepositoryException('Ya existe un archivo con ese nombre. Intenta de nuevo.');
+  }
+  if (error.statusCode == '404' || text.contains('not found')) {
+    return const RepositoryException('No se encontró el archivo.');
+  }
+  debugPrint('StorageException ${error.statusCode}: ${error.error} ${error.message}');
+  return const RepositoryException('No se pudo procesar el archivo. Intenta de nuevo.');
+}
 
 /// Errores de Supabase Auth (códigos: supabase.com/docs/guides/auth/debugging/error-codes).
 RepositoryException _mapAuthError(AuthException error) {

@@ -145,6 +145,7 @@ class MockOfferRepository implements OfferRepository {
       volumeMt: volumeMt ?? o.volumeMt,
       destinationCountry: o.destinationCountry,
       certifications: o.certifications,
+      verifiedCertifications: o.verifiedCertifications,
       sellerName: o.sellerName,
       sellerRating: o.sellerRating,
       sellerTrades: o.sellerTrades,

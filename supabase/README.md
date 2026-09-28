@@ -21,6 +21,7 @@ Cada archivo de `migrations/` se llama `AAAAMMDDHHMMSS_descripcion.sql` (formato
 | `20260925040000_purchase_request_rules.sql` | Reglas de la solicitud de compra con mensajes claros: volumen ≤ disponible, una solicitud activa por oferta, notas ≤ 500; completa `seller_id` desde la oferta (REQ-14) |
 | `20260926000000_negotiation_flow.sql` | Flujo estilo InDrive: `negotiation_rounds`, RPC `counter_offer` / `accept_negotiation` / `reject_negotiation` / `cancel_negotiation` / `confirm_negotiation`, confirmación doble, límite de 10 rondas, descuento de volumen (REQ-15, REQ-16, REQ-17) |
 | `20260926010000_operation_history.sql` | RPC `my_operation_history` y `negotiation_timeline` (REQ-19, base de REQ-30); impide borrar ofertas con tratos confirmados; corrige la regla de revisión de alertas/reportes ante borrados en cascada |
+| `20260927000000_certifications.sql` | Bucket privado `certifications` (PDF ≤ 5 MB), tabla `certifications`, RPC `review_certification` y campo calculado `offers.verified_certifications` (REQ-36) |
 
 ## Flujo de negociación (REQ-14 a REQ-17)
 
@@ -115,6 +116,22 @@ supabase migration repair --status applied 20260925000000
 En Flutter: `OfferRepository.fetchOperationHistory()` / `fetchNegotiationTimeline()` y, para exportar, `OperationHistoryExporter` (`lib/services/`) con `toCsv()` y `toPdf()`.
 
 Una oferta con tratos confirmados **no se puede eliminar** (se perdería el historial): se debe cambiar a estado `cerrada`.
+
+## Certificaciones (REQ-36)
+
+```
+Exportador sube PDF (Storage) + registra certificado ──► pending
+  Admin con offerManagement: review_certification(aprobar) ──► verified ✅
+                             review_certification(rechazar, motivo) ──► rejected
+  (rechazar uno verificado lo revoca; al pasar valid_until deja de contar)
+```
+
+- **Bucket `certifications`**: privado, solo `application/pdf`, máximo 5 MB. Cada exportador sube a su carpeta `<su_id>/...`.
+- **Quién abre el PDF:** solo su dueño y los admins con `offerManagement` (enlace temporal con `createSignedUrl`). Los importadores solo ven el sello.
+- **El exportador no puede auto-verificarse** ni borrar un certificado verificado (ni su PDF): eso lo retira un admin.
+- **Sello en las ofertas:** `select('*, verified_certifications')` devuelve las certificaciones de la oferta que el vendedor tiene verificadas y vigentes (sin distinguir mayúsculas).
+
+En Flutter: `CertificationRepository` (`uploadCertification`, `fetchMyCertifications`, `fetchPendingCertifications`, `reviewCertification`, `deleteCertification`, `getCertificationFileUrl`) y `CropOffer.verifiedCertifications` / `isCertificationVerified(name)`.
 
 ## Backup y restauración (REQ-40)
 
