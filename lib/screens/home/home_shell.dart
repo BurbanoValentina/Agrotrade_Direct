@@ -1,15 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../map/trade_map_screen.dart';
 import '../market/market_screen.dart';
 
-/// Contenedor con la barra de navegación inferior de las 4 secciones del
-/// mockup: Market, My Deals, Trade Map, Profile.
-///
-/// Solo "Market" está construida por completo (fue lo acordado para esta
-/// primera base). Las otras tres quedan como placeholders con la estructura
-/// lista para que cada compañero(a) desarrolle su parte sin tocar la
-/// navegación ni el tema.
+/// Contenedor principal con la barra de navegación inferior (REQ-18 en la pestaña Trade Map).
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -20,28 +15,21 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _currentIndex = 0;
 
+  // Lista de vistas principales conectadas
   static const _screens = [
     MarketScreen(),
     _PlaceholderScreen(
       icon: Icons.assignment_outlined,
       title: 'My Deals',
       description:
-          'Aquí irá el seguimiento de negociaciones activas y el historial '
-          '(REQ-14 a REQ-19).',
+          'Aquí irá el seguimiento de negociaciones activas y el historial (REQ-14 a REQ-19).',
     ),
-    _PlaceholderScreen(
-      icon: Icons.map_outlined,
-      title: 'Trade Map',
-      description:
-          'Aquí irá el mapa Colombia → UE con el estado de los envíos '
-          '(REQ-18).',
-    ),
+    TradeMapScreen(), // REQ-18: Reemplazado placeholder por la pantalla completa del mapa
     _PlaceholderScreen(
       icon: Icons.person_outline,
       title: 'Profile',
       description:
-          'Aquí irá el perfil, calificaciones y reportes (REQ-05, REQ-21, '
-          'REQ-22).',
+          'Aquí irá el perfil, calificaciones y reportes (REQ-05, REQ-21, REQ-22).',
     ),
   ];
 
@@ -54,19 +42,28 @@ class _HomeShellState extends State<HomeShell> {
         onTap: (i) => setState(() => _currentIndex = i),
         items: const [
           BottomNavigationBarItem(
-              icon: Icon(Icons.grid_view_rounded), label: 'Market'),
+            icon: Icon(Icons.grid_view_rounded),
+            label: 'Market',
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.assignment_outlined), label: 'My Deals'),
+            icon: Icon(Icons.assignment_outlined),
+            label: 'My Deals',
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.map_outlined), label: 'Trade Map'),
+            icon: Icon(Icons.map_outlined),
+            label: 'Trade Map',
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline), label: 'Profile'),
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
         ],
       ),
     );
   }
 }
 
+/// Pantalla temporal para módulos en desarrollo asignados a otros integrantes
 class _PlaceholderScreen extends StatelessWidget {
   const _PlaceholderScreen({
     required this.icon,
