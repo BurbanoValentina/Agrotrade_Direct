@@ -16,29 +16,33 @@ class RoleToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: colors.border),
       ),
       child: Row(
         children: [
-          Expanded(child: _segment(UserRole.exportador)),
-          Expanded(child: _segment(UserRole.importador)),
+          Expanded(child: _segment(context, UserRole.exportador)),
+          Expanded(child: _segment(context, UserRole.importador)),
         ],
       ),
     );
   }
 
-  Widget _segment(UserRole role) {
+  Widget _segment(BuildContext context, UserRole role) {
+    final colors = context.colors;
     final isSelected = role == selected;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: isSelected ? AppColors.gold : Colors.transparent,
+        color: isSelected ? colors.gold : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Center(
@@ -47,7 +51,9 @@ class RoleToggle extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.black : AppColors.textSecondary,
+            color: isSelected
+                ? (colors.isDark ? Colors.black : Colors.white)
+                : colors.textSecondary,
           ),
         ),
       ),

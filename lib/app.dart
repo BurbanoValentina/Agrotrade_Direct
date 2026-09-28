@@ -22,11 +22,12 @@ class AgroTradeApp extends StatelessWidget {
     return MaterialApp(
       title: 'AgroTrade Direct',
       debugShowCheckedModeBanner: false,
+
       // REQ-26: Temas
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeProvider.themeMode,
-      
+
       // REQ-31: Idioma y Localización
       locale: localeProvider.locale,
       supportedLocales: const [
@@ -39,7 +40,7 @@ class AgroTradeApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      
+
       home: isLoggedIn ? const HomeShell() : const LoginScreen(),
     );
   }

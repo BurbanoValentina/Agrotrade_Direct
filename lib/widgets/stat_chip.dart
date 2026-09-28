@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 
-/// Chip de estadística/indicador bursátil (Arabica, Cacao, USD/EUR, etc.)
+/// Chip de estadística/indicador bursátil (Arabica, Cacao, USD/EUR, etc.).
+/// Se muestra en el ticker del mercado, ej. "Arabica ICE $4,210 +1.2%".
 class StatChip extends StatelessWidget {
   const StatChip({
     super.key,
@@ -16,48 +17,76 @@ class StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPositive = changePercent >= 0;
-    final changeColor = isPositive ? AppColors.priceUp : AppColors.priceDown;
-    final changeSign = isPositive ? '+' : '';
+    final colors = context.colors;
+    final isUp = changePercent >= 0;
+    final changeColor = isUp ? colors.priceUp : colors.priceDown;
+    final sign = isUp ? '+' : '';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: colors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: colors.isDark ? 0.15 : 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            label,
-            style: const TextStyle(
-              fontSize: 10,
-              color: AppColors.textMuted,
-              fontWeight: FontWeight.w500,
+            label.toUpperCase(),
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+              color: colors.textMuted,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 3),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: colors.textPrimary,
                 ),
               ),
               const SizedBox(width: 6),
-              Text(
-                '$changeSign${changePercent.toStringAsFixed(1)}%',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: changeColor,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: changeColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isUp
+                          ? Icons.arrow_drop_up_rounded
+                          : Icons.arrow_drop_down_rounded,
+                      size: 14,
+                      color: changeColor,
+                    ),
+                    Text(
+                      '$sign${changePercent.toStringAsFixed(1)}%',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: changeColor,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
