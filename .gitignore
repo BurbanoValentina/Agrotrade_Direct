@@ -53,6 +53,14 @@ replay_pid*
 .env
 .env.*
 !.env.example
+lib/core/constants/supabase_constants.dart
+!lib/core/constants/supabase_constants.dart.example
+
+# Backups de la base de datos (contienen datos personales; ver scripts/backup_db.ps1)
+/backups/
+
+# Caché local de la Supabase CLI
+supabase/.temp/
 
 # Symbolication related
 app.*.symbols

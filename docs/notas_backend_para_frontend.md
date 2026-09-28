@@ -1,0 +1,156 @@
+# Notas de backend para frontend
+
+Pendientes de UI que dependen de cambios ya hechos en el backend. Autor: Johan Delgado (Backend). Para: Omar Acosta (Flutter) y Valentina Burbano (UI/QA).
+
+Cada punto indica el archivo a tocar y el código de backend que ya está listo para usar.
+
+---
+
+## REQ-14 — Solicitud de compra (Market)
+
+El backend ya acepta **volumen y notas** y devuelve **el motivo exacto** cuando rechaza una solicitud.
+
+### 1. Mostrar el motivo del error en vez del mensaje genérico
+`lib/screens/market/market_screen.dart` (`onMakeOffer`). Hoy muestra *"No se pudo enviar la contraoferta"*. El motivo real está en `market.lastError`:
+
+```dart
+final ok = await market.sendCounterOffer(offer.id, price);
+if (!context.mounted) return;
+ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+  content: Text(ok
+      ? 'Solicitud de \$${price.toStringAsFixed(0)}/MT enviada'
+      : market.lastError ?? 'No se pudo enviar la solicitud'),
+));
+```
+
+Mensajes posibles (vienen de la BD): *"Ya tienes una solicitud activa para esta oferta."*, *"El volumen solicitado (30 MT) supera el disponible (22 MT)."*, *"Esta oferta ya no recibe solicitudes (estado: confirmada)."*, *"Tu cuenta está bloqueada..."*, *"Solo los importadores pueden enviar solicitudes de compra."*
+
+### 2. Campos de volumen y notas en el modal
+`lib/screens/market/widgets/counter_offer_sheet.dart`. Hoy solo pide precio y el backend asume el volumen completo de la oferta. Agregar:
+- **Volumen (MT)**: opcional, entre 0 y `offer.volumeMt`. Si se deja vacío se pide todo.
+- **Notas**: opcional, máximo 500 caracteres (constante `maxPurchaseRequestNotesLength` en `offer_repository.dart`).
+
+El modal debería devolver los tres valores y llamar:
+```dart
+market.sendCounterOffer(offer.id, price, volumeMt: volume, notes: notes);
+```
+
+### 3. Validar el precio antes de cerrar el modal
+Si el texto no es un número válido, hoy `double.tryParse` devuelve `null` y el modal se cierra sin avisar. Mostrar un error en el campo si está vacío, no es numérico o es ≤ 0.
+
+### 4. Botón "Make an Offer" solo para importadores
+`offer_card.dart` / `market_screen.dart`: la BD rechaza solicitudes de exportadores y staff. Mostrar el botón solo si `user.role == UserRole.importador`.
+
+---
+
+## REQ-15 a REQ-17 — Pantalla "My Deals" (negociación estilo InDrive)
+
+Todo el backend está listo: ver el diagrama y la tabla de funciones en `supabase/README.md` → *Flujo de negociación*. La pestaña "My Deals" de `home_shell.dart` sigue siendo un placeholder.
+
+1. **Listado:** `offerRepository.fetchMyNegotiations()` (trae `offerVariety`, `sellerName`, `buyerName`). Etiqueta con `status.label`.
+2. **Botones según el estado** (con `userId = authProvider.currentUser!.id`):
+
+   | Condición | Botones |
+   | :--- | :--- |
+   | `neg.isTurnOf(userId)` | Aceptar · Rechazar · Contraofertar (solo si `neg.canCounter(userId)`) |
+   | `neg.status == pending/countered` y NO es su turno | "Esperando respuesta…" (+ Cancelar si es el importador) |
+   | `neg.needsConfirmationFrom(userId)` | Confirmar trato · Cancelar |
+   | `accepted` y ya confirmó | "Esperando confirmación de la otra parte" |
+   | `confirmed` | Trato cerrado (habilitar calificación, REQ-21) |
+   | `rejected` / `cancelled` | Mostrar `neg.closeReason` si existe |
+
+3. **Historial del ida y vuelta:** `fetchNegotiationRounds(neg.id)` → lista de `NegotiationRound` (precio, volumen, mensaje, quién propuso). Mostrar "Ronda X de 10".
+4. **Errores:** todos los métodos lanzan `RepositoryException`; mostrar `e.message` (ej. *"No es tu turno: espera la respuesta de la otra parte."*).
+5. Falta un provider para esta pantalla (ej. `DealsProvider`) que envuelva estos métodos, igual que `MarketProvider`.
+
+**Ojo:** el panel admin usa su propio `NegotiationStatus` (`pendiente`, `aceptada`, `rechazada`, `completada`) en `models/negotiation.dart`, distinto del de `models/purchase_request.dart` (`pending`, `countered`, `accepted`, `confirmed`, `rejected`, `cancelled`, que son los valores reales de la BD). Al conectar el panel a Supabase conviene usar el segundo.
+
+---
+
+## REQ-19 / REQ-30 — Historial y exportación
+
+Backend listo (ver `supabase/README.md` → *Historial de operaciones*).
+
+1. **Pantalla de historial** (puede ir dentro de "My Deals" o "Profile"): `offerRepository.fetchOperationHistory(from:, to:, status:)` → lista de `OperationRecord` (ya trae `statusLabel`, `counterpartyName`, `totalUsd`, `myRole`, `closeReason`). Filtros sugeridos: rango de fechas y estado (confirmadas / rechazadas / canceladas).
+2. **Detalle de una operación:** `fetchNegotiationTimeline(id)` → lista de `TimelineEvent` en orden (`type`, `actorName`, `description`, `at`). Ideal para una línea de tiempo vertical.
+3. **Botones "Exportar CSV" / "Exportar PDF":**
+   ```dart
+   const exporter = OperationHistoryExporter();
+   final bytes = await exporter.toPdf(records, userName: user.name, from: from, to: to);
+   final name = exporter.fileName('pdf'); // historial_agrotrade_2026-09-26.pdf
+   ```
+   El exportador solo genera los bytes. Para guardar o compartir el archivo falta agregar un paquete de UI (sugerido: `share_plus` con `XFile.fromData(bytes, name: name, mimeType: ...)`, o `printing` para vista previa del PDF). MIME: `text/csv` y `application/pdf`.
+
+---
+
+## Autenticación (REQ-02 a REQ-04)
+
+Ya resuelto en backend, sin cambios necesarios en las pantallas:
+- **La sesión se restaura al abrir la app** (`main.dart` llama a `restoreSession()` antes de `runApp`): si el usuario ya había entrado, va directo al Home.
+- **Mensajes de error en español** en `auth.errorMessage` (ya se muestran en los SnackBar de login y registro): *"Correo o contraseña incorrectos."*, *"Ya existe una cuenta con ese correo."*, *"La contraseña es muy débil..."*, *"Tu cuenta está bloqueada: [motivo]..."*, *"Te enviamos un correo de confirmación..."*.
+
+Pendiente de UI (opcional): hoy la validación del formulario acepta contraseñas de 4 caracteres, pero Supabase exige mínimo 6 por defecto → cambiar el validador a `v.length < 6`.
+
+---
+
+## REQ-36 — Certificaciones verificadas
+
+Backend listo (ver `supabase/README.md` → *Certificaciones*). Repositorio: `context.read<CertificationRepository>()`.
+
+1. **Sello en las ofertas (Market):** en `offer_card.dart`, al pintar cada chip de `offer.certifications`, usar `offer.isCertificationVerified(name)` para mostrar un ícono de verificado (ej. `Icons.verified`). Ya viene en `fetchOffers()`, sin llamadas extra.
+2. **"Mis certificados" (exportador, en Profile):**
+   - Elegir el PDF: falta un paquete de UI, sugerido `file_picker` (`FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf'], withData: true)` → `bytes`).
+   - `uploadCertification(name:, pdfBytes:, certificateNumber:, validUntil:)`; listar con `fetchMyCertifications()` mostrando `status.label` y `rejectionReason`.
+   - Borrar solo pendientes/rechazados (`deleteCertification`).
+3. **Revisión (panel admin, permiso `offerManagement`):** lista con `fetchPendingCertifications()` (trae `sellerName`), botón "Ver PDF" con `getCertificationFileUrl(cert)` (abrir con `url_launcher`), y aprobar/rechazar con `reviewCertification(id, approve:, reason:)` (motivo obligatorio al rechazar).
+4. Errores: `RepositoryException.message` (ej. *"El PDF no puede superar los 5 MB."*, *"El archivo debe ser un PDF."*).
+
+---
+
+## REQ-33 — Panel admin: empleados, borrar cuentas y advertencias
+
+Backend listo (ver `supabase/README.md` → *Panel admin*). Repositorio: `context.read<ModerationRepository>()`.
+
+1. **Crear empleado** (`admin_employees_screen.dart`): reemplazar `createEmployee` del mock (que genera contraseña) por
+   `inviteStaff(email:, name:, permissions: [AdminPermission...], isSuperAdmin:)`. Ya no hay contraseña que mostrar: el empleado recibe un correo de invitación.
+2. **Primer ingreso del empleado:** si `authProvider.currentUser!.mustSetPassword` es `true`, mostrar una pantalla "Crea tu contraseña" antes del panel y llamar `authProvider.changePassword(nueva)`.
+3. **Borrar cuenta** (`admin_users_screen.dart`): `deleteUser(userId)`. Si tiene tratos confirmados la función responde *"...Bloquéalo en lugar de borrarlo."* → ofrecer el botón de bloquear.
+4. **Advertir** (desde un reporte o desde el usuario): `warnUser(userId, motivo, reportId:)` → `WarningResult`. Si `autoBlocked` es `true`, avisar *"El usuario fue suspendido automáticamente (3 advertencias)"*. Historial: `fetchUserWarnings(userId)`.
+5. **Lado del usuario advertido:** al entrar, `fetchMyWarnings()`; si hay alguna con `!isAcknowledged`, mostrar un aviso y llamar `acknowledgeWarning(id)` al cerrarlo.
+6. **Quitar la contraseña maestra** (`adminGateEmail` / `adminGatePassword` en `mock_admin_data.dart`) y el `loginEmployee` del mock: los empleados usan el login normal y se detectan con `user.isStaff`.
+
+## REQ-43 — Cambiar contraseña (Valery)
+
+`authProvider.changePassword(nueva)` → `bool` y `authProvider.errorMessage` (mínimo 6 caracteres; mensajes en español como *"La nueva contraseña debe ser distinta de la actual."*).
+
+---
+
+## Carga de ofertas (Market)
+
+`MarketProvider.loadOffers()` ya no se queda cargando para siempre si falla. Ahora expone `market.loadError`. Falta mostrarlo en `market_screen.dart` (mensaje + botón "Reintentar" que llame a `market.loadOffers()`), en lugar de la lista vacía.
+
+---
+
+## Panel de administración (REQ-24 / REQ-33)
+
+El backend de roles y permisos ya existe (ver `supabase/README.md` → *Roles y permisos*). Para conectarlo:
+
+1. **Quitar la contraseña maestra.** `lib/data/mock/mock_admin_data.dart` tiene `adminGateEmail` / `adminGatePassword` (`admin12345`) y un correo real, y el repo es público. Con Supabase, los empleados inician sesión con el login normal.
+2. **Detectar si el usuario es staff después del login:**
+   ```dart
+   final isStaff = await supabase.rpc('is_staff') as bool;
+   final row = await supabase.from('staff_members')
+       .select().eq('user_id', supabase.auth.currentUser!.id).single();
+   // row['is_super_admin'], row['permissions'] (mismos nombres que AdminPermission)
+   ```
+3. ~~Rol `staff` en `AppUser`~~ ✅ **Hecho en backend:** `AppUser.role` puede ser `UserRole.staff` (getter `user.isStaff`) y trae `user.isTester` (REQ-29). Después del login normal: si `user.isStaff` → llevar al `AdminShell`; si `user.isTester` → mostrar el panel de QA de Valentina.
+   El login ya **rechaza usuarios bloqueados** con el motivo (tabla `blocked_users`), así que `admin.isUserBlocked(email)` en `login_screen.dart` (mock) se puede quitar al conectar Supabase.
+4. **Datos del panel ya disponibles en Supabase:** `blocked_users`, `user_reports`, `suspicious_activities`, `platform_config`, `rpc('admin_dashboard_stats')` (JSON con los campos de `DashboardStats`) y `rpc('set_tester', ...)`.
+5. **Crear empleados desde la app** requiere una Edge Function (crear usuarios de Auth necesita la clave `service_role`, que nunca va en la app). Queda pendiente en backend; por ahora el primer admin se crea a mano (ver `supabase/README.md`).
+
+---
+
+## Otros detalles detectados
+
+- `offer_card.dart`: `offer.sellerName.substring(0, 1)` falla si el nombre llega vacío. Usar `sellerName.isNotEmpty ? sellerName[0] : '?'`.
+- `market_screen.dart`: los precios del ticker (Arabica ICE, Cacao, USD/EUR) están fijos en el código. Pueden leerse de la tabla `platform_config` (lectura permitida a todos los usuarios autenticados).

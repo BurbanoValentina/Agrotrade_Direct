@@ -1,0 +1,15 @@
+/// Plantilla de ejemplo para configuración de Supabase.
+/// Copia este archivo como `supabase_constants.dart` y coloca tus credenciales.
+class SupabaseConstants {
+  SupabaseConstants._();
+
+  static const String supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://TU_PROYECTO.supabase.co',
+  );
+
+  static const String supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: 'TU_ANON_PUBLIC_KEY',
+  );
+}

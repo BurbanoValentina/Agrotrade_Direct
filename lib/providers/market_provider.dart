@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../data/repositories/offer_repository.dart';
+import '../data/repositories/repository_exception.dart';
 import '../models/crop_offer.dart';
 
 /// REQ-12: Modelo de datos para encapsular los criterios de filtro del mercado
@@ -53,6 +54,9 @@ class MarketProvider extends ChangeNotifier {
 
   // Getters públicos
   List<CropOffer> get offers => _offers;
+  String? _loadError;
+  String? _lastError;
+
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   MarketFilter get filter => _filterOptions.category;
@@ -60,6 +64,12 @@ class MarketProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
 
   /// REQ-11 & REQ-12: Retorna las ofertas filtradas por texto, tipo, precio, volumen y destino
+  /// Motivo por el que falló la última carga de ofertas (null si cargó bien).
+  String? get loadError => _loadError;
+
+  /// Motivo por el que falló la última solicitud enviada (null si se envió).
+  String? get lastError => _lastError;
+
   List<CropOffer> get visibleOffers {
     return _offers.where((offer) {
       // 1. Filtro por categoría (Café / Cacao)
@@ -170,6 +180,17 @@ class MarketProvider extends ChangeNotifier {
   void setAdvancedFilterOptions(MarketFilterOptions options) {
     _filterOptions = options;
     notifyListeners();
+    _isLoading = true;
+    _loadError = null;
+    notifyListeners();
+    try {
+      _allOffers = await _repository.fetchOffers();
+    } on RepositoryException catch (e) {
+      _loadError = e.message;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   /// REQ-12: Restablece todos los filtros a sus valores predeterminados
@@ -188,5 +209,26 @@ class MarketProvider extends ChangeNotifier {
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
+  /// REQ-14: envía una solicitud de compra. Devuelve `true` si se envió; si no,
+  /// el motivo queda en [lastError] para mostrarlo al usuario.
+  Future<bool> sendCounterOffer(
+    String offerId,
+    double proposedPrice, {
+    double? volumeMt,
+    String? notes,
+  }) async {
+    try {
+      await _repository.sendCounterOffer(
+        offerId: offerId,
+        proposedPricePerMt: proposedPrice,
+        volumeMt: volumeMt,
+        notes: notes,
+      );
+      _lastError = null;
+      return true;
+    } on RepositoryException catch (e) {
+      _lastError = e.message;
+      return false;
+    }
   }
 }
