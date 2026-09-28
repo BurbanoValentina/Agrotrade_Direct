@@ -6,16 +6,13 @@ import 'data/repositories/auth_repository.dart';
 import 'data/repositories/offer_repository.dart';
 import 'providers/auth_provider.dart';
 import 'providers/market_provider.dart';
+import 'providers/theme_provider.dart';
 
 void main() {
   runApp(
     MultiProvider(
       providers: [
         // ── Repositorios ────────────────────────────────────────────────
-        // Cuando el backend esté listo, reemplaza estas dos líneas por
-        // SupabaseAuthRepository() / SupabaseOfferRepository() (deben
-        // implementar las mismas clases abstractas). Ninguna pantalla
-        // necesita cambiar.
         Provider<AuthRepository>(create: (_) => MockAuthRepository()),
         Provider<OfferRepository>(create: (_) => MockOfferRepository()),
 
@@ -25,6 +22,10 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (ctx) => MarketProvider(ctx.read<OfferRepository>()),
+        ),
+        // REQ-26: Proveedor de estado para alternar tema claro / oscuro
+        ChangeNotifierProvider(
+          create: (_) => ThemeProvider(),
         ),
       ],
       child: const AgroTradeApp(),

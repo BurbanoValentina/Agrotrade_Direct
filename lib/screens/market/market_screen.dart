@@ -5,8 +5,10 @@ import '../../core/theme/app_theme.dart';
 import '../../models/user_role.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/market_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../widgets/role_toggle.dart';
 import '../../widgets/stat_chip.dart';
+
 import 'widgets/counter_offer_sheet.dart';
 import 'widgets/create_offer_sheet.dart';
 import 'widgets/filter_sheet.dart';
@@ -33,6 +35,7 @@ class _MarketScreenState extends State<MarketScreen> {
   Widget build(BuildContext context) {
     final market = context.watch<MarketProvider>();
     final user = context.watch<AuthProvider>().currentUser;
+    final themeProvider = context.watch<ThemeProvider>();
     final isExporter = user?.role == UserRole.exportador;
 
     return Scaffold(
@@ -76,13 +79,45 @@ class _MarketScreenState extends State<MarketScreen> {
               const SizedBox(height: 8),
               if (user != null) RoleToggle(selected: user.role),
               const SizedBox(height: 20),
-              Text('Live Market',
-                  style: Theme.of(context).textTheme.headlineLarge),
+
+              // Cabecera con Título y Botón de prueba para REQ-26 (Tema Claro / Oscuro)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Live Market',
+                      style: Theme.of(context).textTheme.headlineLarge),
+                  IconButton(
+                    style: IconButton.styleFrom(
+                      backgroundColor: themeProvider.isDarkMode
+                          ? AppColors.surfaceAlt
+                          : AppColors.lightSurfaceAlt,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: Icon(
+                      themeProvider.isDarkMode
+                          ? Icons.wb_sunny_outlined
+                          : Icons.nightlight_round,
+                      color: AppColors.gold,
+                    ),
+                    onPressed: () {
+                      context
+                          .read<ThemeProvider>()
+                          .toggleTheme(!themeProvider.isDarkMode);
+                    },
+                  ),
+                ],
+              ),
               const SizedBox(height: 4),
               Text(
                 '${market.visibleOffers.length} ofertas activas de Colombia',
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 13),
+                style: TextStyle(
+                  color: themeProvider.isDarkMode
+                      ? AppColors.textSecondary
+                      : AppColors.lightTextSecondary,
+                  fontSize: 13,
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -92,7 +127,11 @@ class _MarketScreenState extends State<MarketScreen> {
                   Expanded(
                     child: TextField(
                       onChanged: market.setQuery,
-                      style: const TextStyle(color: AppColors.textPrimary),
+                      style: TextStyle(
+                        color: themeProvider.isDarkMode
+                            ? AppColors.textPrimary
+                            : AppColors.lightTextPrimary,
+                      ),
                       decoration: const InputDecoration(
                         hintText: 'Buscar variedad, origen...',
                         prefixIcon:
@@ -103,7 +142,9 @@ class _MarketScreenState extends State<MarketScreen> {
                   const SizedBox(width: 8),
                   IconButton(
                     style: IconButton.styleFrom(
-                      backgroundColor: AppColors.surfaceAlt,
+                      backgroundColor: themeProvider.isDarkMode
+                          ? AppColors.surfaceAlt
+                          : AppColors.lightSurfaceAlt,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -170,7 +211,9 @@ class _MarketScreenState extends State<MarketScreen> {
                         changePercent: -0.1),
                     SizedBox(width: 8),
                     StatChip(
-                        label: 'Robusta', value: '\$2,340', changePercent: 2.1),
+                        label: 'Robusta',
+                        value: '\$2,340',
+                        changePercent: 2.1),
                   ],
                 ),
               ),
@@ -231,15 +274,21 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.gold : AppColors.surface,
+          color: selected
+              ? AppColors.gold
+              : (isDark ? AppColors.surface : AppColors.lightSurface),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? AppColors.gold : AppColors.border,
+            color: selected
+                ? AppColors.gold
+                : (isDark ? AppColors.border : AppColors.lightBorder),
           ),
         ),
         child: Text(
@@ -247,7 +296,11 @@ class _FilterChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: selected ? Colors.black : AppColors.textSecondary,
+            color: selected
+                ? Colors.black
+                : (isDark
+                    ? AppColors.textSecondary
+                    : AppColors.lightTextSecondary),
           ),
         ),
       ),

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-
 import '../core/theme/app_theme.dart';
 
-/// Chip de precio de mercado (ej. "Arabica ICE $4,210 +1.2%") como en el
-/// ticker superior del mockup de "Live Market".
+/// Chip de estadística/indicador bursátil (Arabica, Cacao, USD/EUR, etc.)
 class StatChip extends StatelessWidget {
   const StatChip({
     super.key,
@@ -18,32 +16,52 @@ class StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isUp = changePercent >= 0;
-    final changeColor = isUp ? AppColors.priceUp : AppColors.priceDown;
-    final sign = isUp ? '+' : '';
+    final isPositive = changePercent >= 0;
+    final changeColor = isPositive ? AppColors.priceUp : AppColors.priceDown;
+    final changeSign = isPositive ? '+' : '';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
-        borderRadius: BorderRadius.circular(10),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 10, color: AppColors.textMuted)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppColors.textMuted,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(value,
-              style: const TextStyle(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary)),
-          Text('$sign${changePercent.toStringAsFixed(1)}%',
-              style: TextStyle(fontSize: 10, color: changeColor)),
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '$changeSign${changePercent.toStringAsFixed(1)}%',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: changeColor,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
