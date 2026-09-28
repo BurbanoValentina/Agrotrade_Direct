@@ -42,7 +42,8 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                 color: colors.gold.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(Icons.person_add_rounded, color: colors.gold, size: 22),
+              child:
+                  Icon(Icons.person_add_rounded, color: colors.gold, size: 22),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -81,12 +82,14 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline_rounded, color: colors.gold, size: 18),
+                    Icon(Icons.info_outline_rounded,
+                        color: colors.gold, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'El sistema generará una contraseña aleatoria de alta seguridad.',
-                        style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                        style: TextStyle(
+                            color: colors.textSecondary, fontSize: 12),
                       ),
                     ),
                   ],
@@ -98,9 +101,12 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                 style: TextStyle(color: colors.textPrimary, fontSize: 14),
                 decoration: InputDecoration(
                   labelText: 'Nombre completo',
-                  prefixIcon: Icon(Icons.badge_outlined, color: colors.textMuted, size: 20),
+                  prefixIcon: Icon(Icons.badge_outlined,
+                      color: colors.textMuted, size: 20),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Ingrese el nombre' : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Ingrese el nombre'
+                    : null,
               ),
               const SizedBox(height: 14),
               TextFormField(
@@ -108,10 +114,13 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                 style: TextStyle(color: colors.textPrimary, fontSize: 14),
                 decoration: InputDecoration(
                   labelText: 'Correo electrónico corporativo',
-                  prefixIcon: Icon(Icons.mail_outline_rounded, color: colors.textMuted, size: 20),
+                  prefixIcon: Icon(Icons.mail_outline_rounded,
+                      color: colors.textMuted, size: 20),
                 ),
                 keyboardType: TextInputType.emailAddress,
-                validator: (v) => (v == null || !v.contains('@')) ? 'Ingrese un correo válido' : null,
+                validator: (v) => (v == null || !v.contains('@'))
+                    ? 'Ingrese un correo válido'
+                    : null,
               ),
             ],
           ),
@@ -121,7 +130,8 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               'Cancelar',
-              style: TextStyle(color: colors.textSecondary, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                  color: colors.textSecondary, fontWeight: FontWeight.w600),
             ),
           ),
           ElevatedButton.icon(
@@ -129,10 +139,12 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
               backgroundColor: colors.gold,
               foregroundColor: colors.isDark ? Colors.black : Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             icon: const Icon(Icons.check_rounded, size: 18),
-            label: const Text('Crear', style: TextStyle(fontWeight: FontWeight.w800)),
+            label: const Text('Crear',
+                style: TextStyle(fontWeight: FontWeight.w800)),
             onPressed: () async {
               if (formKey.currentState?.validate() ?? false) {
                 final newEmp = await provider.createEmployee(
@@ -142,7 +154,8 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                 if (ctx.mounted) {
                   Navigator.pop(ctx);
                   if (newEmp != null) {
-                    _showPasswordDialog(context, newEmp.name, newEmp.email, newEmp.password);
+                    _showPasswordDialog(
+                        context, newEmp.name, newEmp.email, newEmp.password);
                   }
                 }
               }
@@ -153,7 +166,8 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
     );
   }
 
-  void _showPasswordDialog(BuildContext context, String name, String email, String password) {
+  void _showPasswordDialog(
+      BuildContext context, String name, String email, String password) {
     final colors = context.colors;
     showDialog(
       context: context,
@@ -175,7 +189,8 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                 color: colors.statusActive.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(Icons.key_rounded, color: colors.statusActive, size: 22),
+              child:
+                  Icon(Icons.key_rounded, color: colors.statusActive, size: 22),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -192,7 +207,10 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                   ),
                   Text(
                     name,
-                    style: TextStyle(color: colors.gold, fontWeight: FontWeight.w600, fontSize: 13),
+                    style: TextStyle(
+                        color: colors.gold,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13),
                   ),
                 ],
               ),
@@ -205,7 +223,8 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
           children: [
             Text(
               'Guarda esta contraseña, se genera automáticamente y no se mostrará de nuevo.',
-              style: TextStyle(color: colors.textSecondary, fontSize: 13, height: 1.4),
+              style: TextStyle(
+                  color: colors.textSecondary, fontSize: 13, height: 1.4),
             ),
             const SizedBox(height: 16),
             Container(
@@ -230,12 +249,15 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.copy_rounded, color: colors.gold, size: 20),
+                    icon:
+                        Icon(Icons.copy_rounded, color: colors.gold, size: 20),
                     tooltip: 'Copiar contraseña',
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: password));
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Contraseña copiada al portapapeles')),
+                        const SnackBar(
+                            content:
+                                Text('Contraseña copiada al portapapeles')),
                       );
                     },
                   ),
@@ -251,9 +273,11 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
               backgroundColor: colors.gold,
               foregroundColor: colors.isDark ? Colors.black : Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Entendido', style: TextStyle(fontWeight: FontWeight.w800)),
+            child: const Text('Entendido',
+                style: TextStyle(fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -287,9 +311,13 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                       ? colors.gold.withValues(alpha: 0.2)
                       : colors.surfaceAlt,
                   child: Text(
-                    employee.name.isNotEmpty ? employee.name[0].toUpperCase() : 'E',
+                    employee.name.isNotEmpty
+                        ? employee.name[0].toUpperCase()
+                        : 'E',
                     style: TextStyle(
-                      color: employee.isSuperAdmin ? colors.gold : colors.textPrimary,
+                      color: employee.isSuperAdmin
+                          ? colors.gold
+                          : colors.textPrimary,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -309,7 +337,8 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                       ),
                       Text(
                         employee.email,
-                        style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                        style: TextStyle(
+                            color: colors.textSecondary, fontSize: 12),
                       ),
                     ],
                   ),
@@ -349,12 +378,15 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                         ),
                         subtitle: Text(
                           'Control total del sistema sin restricciones de módulos.',
-                          style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                          style: TextStyle(
+                              color: colors.textSecondary, fontSize: 12),
                         ),
                         value: isSuperAdmin,
                         activeTrackColor: colors.gold.withValues(alpha: 0.5),
-                        activeThumbColor: colors.gold,
-                        onChanged: (val) => setDialogState(() => isSuperAdmin = val),
+                        activeColor: colors
+                            .gold, // <--- SE CAMBIÓ activeThumbColor POR activeColor
+                        onChanged: (val) =>
+                            setDialogState(() => isSuperAdmin = val),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -371,14 +403,17 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                     ),
                     const SizedBox(height: 8),
                     ...AdminPermission.values.map((p) {
-                      final isChecked = selectedPerms.contains(p) || isSuperAdmin;
+                      final isChecked =
+                          selectedPerms.contains(p) || isSuperAdmin;
                       return Container(
                         margin: const EdgeInsets.only(bottom: 6),
                         decoration: BoxDecoration(
                           color: colors.surfaceAlt,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: isChecked ? colors.gold.withValues(alpha: 0.4) : colors.border,
+                            color: isChecked
+                                ? colors.gold.withValues(alpha: 0.4)
+                                : colors.border,
                           ),
                         ),
                         child: CheckboxListTile(
@@ -393,11 +428,13 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                           ),
                           subtitle: Text(
                             p.description,
-                            style: TextStyle(color: colors.textSecondary, fontSize: 11),
+                            style: TextStyle(
+                                color: colors.textSecondary, fontSize: 11),
                           ),
                           value: isChecked,
                           activeColor: colors.gold,
-                          checkColor: colors.isDark ? Colors.black : Colors.white,
+                          checkColor:
+                              colors.isDark ? Colors.black : Colors.white,
                           onChanged: isSuperAdmin
                               ? null
                               : (val) {
@@ -421,20 +458,25 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                 onPressed: () => Navigator.pop(ctx),
                 child: Text(
                   'Cancelar',
-                  style: TextStyle(color: colors.textSecondary, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: colors.textSecondary, fontWeight: FontWeight.w600),
                 ),
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors.gold,
                   foregroundColor: colors.isDark ? Colors.black : Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.save_rounded, size: 18),
-                label: const Text('Guardar', style: TextStyle(fontWeight: FontWeight.w800)),
+                label: const Text('Guardar',
+                    style: TextStyle(fontWeight: FontWeight.w800)),
                 onPressed: () async {
-                  await provider.updateEmployeePermissions(employee.id, selectedPerms, isSuperAdmin);
+                  await provider.updateEmployeePermissions(
+                      employee.id, selectedPerms, isSuperAdmin);
                   if (ctx.mounted) Navigator.pop(ctx);
                 },
               ),
@@ -456,7 +498,8 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateEmployeeDialog(context),
         backgroundColor: colors.gold,
-        icon: Icon(Icons.person_add_rounded, color: colors.isDark ? Colors.black : Colors.white),
+        icon: Icon(Icons.person_add_rounded,
+            color: colors.isDark ? Colors.black : Colors.white),
         label: Text(
           'Crear Empleado',
           style: TextStyle(
@@ -489,7 +532,8 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                     const SizedBox(height: 4),
                     Text(
                       '${provider.employees.length} colaboradores registrados en AgroTrade',
-                      style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                      style:
+                          TextStyle(color: colors.textSecondary, fontSize: 13),
                     ),
                   ],
                 ),
@@ -511,19 +555,23 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                       color: colors.surface,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isMe ? colors.gold.withValues(alpha: 0.5) : colors.border,
+                        color: isMe
+                            ? colors.gold.withValues(alpha: 0.5)
+                            : colors.border,
                         width: isMe ? 1.5 : 1,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: colors.isDark ? 0.2 : 0.03),
+                          color: Colors.black
+                              .withValues(alpha: colors.isDark ? 0.2 : 0.03),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
                       ],
                     ),
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                       onTap: () => _showPermissionsDialog(context, emp),
                       leading: Stack(
                         children: [
@@ -533,9 +581,13 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                                 ? colors.gold.withValues(alpha: 0.2)
                                 : colors.surfaceAlt,
                             child: Text(
-                              emp.name.isNotEmpty ? emp.name[0].toUpperCase() : 'E',
+                              emp.name.isNotEmpty
+                                  ? emp.name[0].toUpperCase()
+                                  : 'E',
                               style: TextStyle(
-                                color: emp.isSuperAdmin ? colors.gold : colors.textPrimary,
+                                color: emp.isSuperAdmin
+                                    ? colors.gold
+                                    : colors.textPrimary,
                                 fontWeight: FontWeight.w800,
                                 fontSize: 18,
                               ),
@@ -551,7 +603,8 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                                   color: colors.gold,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.star, size: 12, color: Colors.black),
+                                child: const Icon(Icons.star,
+                                    size: 12, color: Colors.black),
                               ),
                             ),
                         ],
@@ -572,11 +625,13 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                           if (isMe) ...[
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: colors.gold.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: colors.gold.withValues(alpha: 0.4)),
+                                border: Border.all(
+                                    color: colors.gold.withValues(alpha: 0.4)),
                               ),
                               child: Text(
                                 'Tú',
@@ -596,7 +651,8 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                           const SizedBox(height: 4),
                           Text(
                             emp.email,
-                            style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                            style: TextStyle(
+                                color: colors.textSecondary, fontSize: 12),
                           ),
                           const SizedBox(height: 6),
                           Wrap(
@@ -604,37 +660,48 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                             runSpacing: 4,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
                                   color: emp.isSuperAdmin
                                       ? colors.gold.withValues(alpha: 0.15)
                                       : colors.surfaceAlt,
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: emp.isSuperAdmin ? colors.gold : colors.border,
+                                    color: emp.isSuperAdmin
+                                        ? colors.gold
+                                        : colors.border,
                                   ),
                                 ),
                                 child: Text(
-                                  emp.isSuperAdmin ? '👑 Super Admin' : '🛡️ Empleado',
+                                  emp.isSuperAdmin
+                                      ? '👑 Super Admin'
+                                      : '🛡️ Empleado',
                                   style: TextStyle(
-                                    color: emp.isSuperAdmin ? colors.gold : colors.textPrimary,
+                                    color: emp.isSuperAdmin
+                                        ? colors.gold
+                                        : colors.textPrimary,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
                                   color: emp.isActive
-                                      ? colors.statusActive.withValues(alpha: 0.12)
+                                      ? colors.statusActive
+                                          .withValues(alpha: 0.12)
                                       : Colors.grey.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
                                   emp.isActive ? 'Activo' : 'Inactivo',
                                   style: TextStyle(
-                                    color: emp.isActive ? colors.statusActive : colors.textMuted,
+                                    color: emp.isActive
+                                        ? colors.statusActive
+                                        : colors.textMuted,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -645,7 +712,8 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                         ],
                       ),
                       trailing: PopupMenuButton<String>(
-                        icon: Icon(Icons.more_vert, color: colors.textSecondary),
+                        icon:
+                            Icon(Icons.more_vert, color: colors.textSecondary),
                         color: colors.surface,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -667,7 +735,9 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                                   borderRadius: BorderRadius.circular(18),
                                   side: BorderSide(color: colors.border),
                                 ),
-                                title: Text('Eliminar Empleado', style: TextStyle(color: colors.textPrimary)),
+                                title: Text('Eliminar Empleado',
+                                    style:
+                                        TextStyle(color: colors.textPrimary)),
                                 content: Text(
                                   '¿Está seguro de eliminar a ${emp.name}? Se revocarán todas sus credenciales.',
                                   style: TextStyle(color: colors.textSecondary),
@@ -675,15 +745,19 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(ctx),
-                                    child: Text('Cancelar', style: TextStyle(color: colors.textSecondary)),
+                                    child: Text('Cancelar',
+                                        style: TextStyle(
+                                            color: colors.textSecondary)),
                                   ),
                                   ElevatedButton(
                                     onPressed: () async {
                                       await provider.deleteEmployee(emp.id);
                                       if (ctx.mounted) Navigator.pop(ctx);
                                     },
-                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                                    child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.redAccent),
+                                    child: const Text('Eliminar',
+                                        style: TextStyle(color: Colors.white)),
                                   ),
                                 ],
                               ),
@@ -695,9 +769,12 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                             value: 'permissions',
                             child: Row(
                               children: [
-                                Icon(Icons.tune_rounded, color: colors.gold, size: 18),
+                                Icon(Icons.tune_rounded,
+                                    color: colors.gold, size: 18),
                                 const SizedBox(width: 10),
-                                Text('Configurar Permisos', style: TextStyle(color: colors.textPrimary)),
+                                Text('Configurar Permisos',
+                                    style:
+                                        TextStyle(color: colors.textPrimary)),
                               ],
                             ),
                           ),
@@ -706,7 +783,9 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                             child: Row(
                               children: [
                                 Icon(
-                                  emp.isActive ? Icons.toggle_off_rounded : Icons.toggle_on_rounded,
+                                  emp.isActive
+                                      ? Icons.toggle_off_rounded
+                                      : Icons.toggle_on_rounded,
                                   color: colors.textSecondary,
                                   size: 18,
                                 ),
@@ -723,9 +802,12 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                               value: 'delete',
                               child: Row(
                                 children: [
-                                  Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                                  Icon(Icons.delete_outline_rounded,
+                                      color: Colors.redAccent, size: 18),
                                   SizedBox(width: 10),
-                                  Text('Eliminar', style: TextStyle(color: Colors.redAccent)),
+                                  Text('Eliminar',
+                                      style:
+                                          TextStyle(color: Colors.redAccent)),
                                 ],
                               ),
                             ),

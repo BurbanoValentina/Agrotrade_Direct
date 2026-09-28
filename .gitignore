@@ -70,3 +70,6 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+lib/core/constants/supabase_constants.dart
+

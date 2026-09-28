@@ -3,6 +3,7 @@ import '../../models/negotiation_round.dart';
 import '../../models/operation_record.dart';
 import '../../models/purchase_request.dart';
 import '../mock/mock_data.dart';
+import '../services/local_storage_service.dart';
 import 'repository_exception.dart';
 
 /// Máximo de caracteres de las notas / mensajes de una negociación (igual que en la BD).
@@ -109,6 +110,12 @@ void validatePurchaseRequestInput({
   }
 }
 
+/// Implementación en memoria con datos de ejemplo y caché local para modo offline (REQ-27).
+class MockOfferRepository implements OfferRepository {
+  MockOfferRepository([LocalStorageService? storageService])
+      : _storageService = storageService ?? LocalStorageService();
+
+  final LocalStorageService _storageService;
 /// Implementación en memoria con datos de ejemplo para pruebas offline.
 ///
 /// Replica las reglas de la BD (migraciones 20260925040000_purchase_request_rules
@@ -210,6 +217,22 @@ class MockOfferRepository implements OfferRepository {
   @override
   Future<List<CropOffer>> fetchOffers() async {
     await Future.delayed(const Duration(milliseconds: 400));
+    try {
+      // 1. Obtenemos las ofertas iniciales o mock
+      final offers = List<CropOffer>.from(mockOffers);
+
+      // 2. REQ-27: Guardamos automáticamente una copia en la memoria del teléfono
+      await _storageService.cacheOffers(offers);
+
+      return offers;
+    } catch (e) {
+      // 3. REQ-27: Si falla la red/fuente, devolvemos lo que esté guardado en caché
+      final cached = await _storageService.getCachedOffers();
+      if (cached.isNotEmpty) {
+        return cached;
+      }
+      rethrow;
+    }
     return List<CropOffer>.from(_offers);
   }
 
@@ -221,6 +244,7 @@ class MockOfferRepository implements OfferRepository {
     String? notes,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
+    return true;
     validatePurchaseRequestInput(
       proposedPricePerMt: proposedPricePerMt,
       volumeMt: volumeMt,

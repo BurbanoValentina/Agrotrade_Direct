@@ -17,6 +17,7 @@ import 'providers/admin_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/market_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/locale_provider.dart'; // REQ-31
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +45,7 @@ Future<void> main() async {
         // Admin aún sin backend: sigue en mock hasta tener tablas en Supabase.
         Provider<AdminRepository>(create: (_) => MockAdminRepository()),
 
+        // Providers
         // Providers de estado
         ChangeNotifierProvider(
           create: (_) => ThemeProvider(),
@@ -58,9 +60,14 @@ Future<void> main() async {
         ChangeNotifierProvider(
           create: (ctx) => AdminProvider(ctx.read<AdminRepository>()),
         ),
+        // REQ-31: Proveedor de Idioma
+        ChangeNotifierProvider(
+          create: (_) => LocaleProvider(),
+        ),
       ],
       child: const AgroTradeApp(),
     ),
   );
+}
 }
 

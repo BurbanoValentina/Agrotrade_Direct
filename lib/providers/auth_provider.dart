@@ -13,12 +13,15 @@ import '../models/user_role.dart';
 class AuthProvider extends ChangeNotifier {
   AuthProvider(this._repository, {AppUser? initialUser}) : _currentUser = initialUser;
 
+  // Instancia del repositorio de autenticación inyectado (Inversión de Dependencias)
   final AuthRepository _repository;
 
+  // Variables privadas para el manejo del estado interno
   AppUser? _currentUser;
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Getters públicos (Encapsulamiento): Exponen acceso de solo lectura al estado
   AppUser? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
 
@@ -26,6 +29,23 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isLoggedIn => _currentUser != null;
 
+  /// REQ-04: Ejecuta el inicio de sesión contra el repositorio de datos.
+  /// Retorna `true` si la autenticación fue exitosa o `false` si falló.
+  Future<bool> login(String email, String password) async {
+    _setLoading(true);
+    try {
+      // Petición asíncrona al repositorio para obtener el usuario
+      _currentUser = await _repository.login(email: email, password: password);
+      _errorMessage = null; // Limpia errores previos si la llamada es exitosa
+      return true;
+    } catch (e) {
+      // Captura excepciones y establece el mensaje de error para la UI
+      _errorMessage = 'No pudimos iniciar sesión. Intenta de nuevo.';
+      return false;
+    } finally {
+      // Garantiza que el estado de carga cambie a false independientemente del resultado
+      _setLoading(false);
+    }
   Future<bool> login(String email, String password) {
     return _run(
       () => _repository.login(email: email, password: password),
@@ -33,6 +53,7 @@ class AuthProvider extends ChangeNotifier {
     );
   }
 
+  /// REQ-02 / REQ-03: Registra un nuevo usuario en la plataforma.
   Future<bool> register({
     required String name,
     required String email,
@@ -71,6 +92,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Cierra la sesión activa y limpia los datos del usuario.
   /// Vuelve a leer la sesión guardada (ej. al volver a la app).
   Future<void> restoreSession() async {
     try {
@@ -88,9 +110,10 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = e.message;
     }
     _currentUser = null;
-    notifyListeners();
+    notifyListeners(); // Notifica a los escuchas para redibujar la UI al cerrar sesión
   }
 
+  /// Método privado para actualizar la bandera de carga y notificar a los oyentes.
   Future<bool> _run(Future<AppUser> Function() action, {required String fallbackError}) async {
     _setLoading(true);
     try {
@@ -111,6 +134,6 @@ class AuthProvider extends ChangeNotifier {
 
   void _setLoading(bool value) {
     _isLoading = value;
-    notifyListeners();
+    notifyListeners(); // Dispara el rediseño de widgets asociados a context.watch()
   }
 }

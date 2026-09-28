@@ -149,6 +149,7 @@ extension AppThemeContext on BuildContext {
 class AppColors {
   AppColors._();
 
+  // Colores modo oscuro
   static const Color background = Color(0xFF1B0E10);
   static const Color surface = Color(0xFF2A1519);
   static const Color surfaceAlt = Color(0xFF241214);
@@ -161,6 +162,17 @@ class AppColors {
   static const Color textSecondary = Color(0xFFB8A39B);
   static const Color textMuted = Color(0xFF8A7570);
 
+  // Colores modo claro (REQ-26)
+  static const Color lightBackground = Color(0xFFF8F5F2);
+  static const Color lightSurface = Color(0xFFFFFFFF);
+  static const Color lightSurfaceAlt = Color(0xFFF0EBE6);
+  static const Color lightBorder = Color(0xFFE2D7CE);
+
+  static const Color lightTextPrimary = Color(0xFF2B211E);
+  static const Color lightTextSecondary = Color(0xFF6E5E58);
+  static const Color lightTextMuted = Color(0xFFA3928C);
+
+  // Estados
   static const Color statusActive = Color(0xFF4CAF50);
   static const Color statusNegotiating = Color(0xFFE07856);
   static const Color statusTransit = Color(0xFFD9A929);
@@ -180,7 +192,8 @@ class AppTheme {
     const palette = AppThemeColors.dark;
     final base = ThemeData.dark();
 
-    final textTheme = GoogleFonts.plusJakartaSansTextTheme(base.textTheme).copyWith(
+    final textTheme =
+        GoogleFonts.plusJakartaSansTextTheme(base.textTheme).copyWith(
       headlineLarge: GoogleFonts.plusJakartaSans(
         color: palette.textPrimary,
         fontWeight: FontWeight.w800,
@@ -366,7 +379,8 @@ class AppTheme {
     const palette = AppThemeColors.light;
     final base = ThemeData.light();
 
-    final textTheme = GoogleFonts.plusJakartaSansTextTheme(base.textTheme).copyWith(
+    final textTheme =
+        GoogleFonts.plusJakartaSansTextTheme(base.textTheme).copyWith(
       headlineLarge: GoogleFonts.plusJakartaSans(
         color: palette.textPrimary,
         fontWeight: FontWeight.w800,
