@@ -16,6 +16,11 @@ class AppUser {
   /// Solo la activa un admin con `rpc('set_tester')`.
   final bool isTester;
 
+  /// Cuenta creada por invitación (empleados del panel admin) que aún no ha
+  /// definido su contraseña: la app debe pedírsela antes de continuar
+  /// (`AuthRepository.changePassword`).
+  final bool mustSetPassword;
+
   const AppUser({
     required this.id,
     required this.name,
@@ -24,6 +29,7 @@ class AppUser {
     this.companyName,
     this.country,
     this.isTester = false,
+    this.mustSetPassword = false,
   });
 
   /// Personal del panel de administración (sus permisos están en
@@ -31,7 +37,11 @@ class AppUser {
   bool get isStaff => role == UserRole.staff;
 
   /// Fila de `public.profiles` (claves en snake_case).
-  factory AppUser.fromProfile(Map<String, dynamic> row, {String? fallbackEmail}) {
+  factory AppUser.fromProfile(
+    Map<String, dynamic> row, {
+    String? fallbackEmail,
+    bool mustSetPassword = false,
+  }) {
     return AppUser(
       id: row['id'] as String,
       name: row['name'] as String? ?? '',
@@ -40,6 +50,20 @@ class AppUser {
       companyName: row['company_name'] as String?,
       country: row['country'] as String?,
       isTester: row['is_tester'] as bool? ?? false,
+      mustSetPassword: mustSetPassword,
+    );
+  }
+
+  AppUser copyWith({bool? mustSetPassword}) {
+    return AppUser(
+      id: id,
+      name: name,
+      email: email,
+      role: role,
+      companyName: companyName,
+      country: country,
+      isTester: isTester,
+      mustSetPassword: mustSetPassword ?? this.mustSetPassword,
     );
   }
 

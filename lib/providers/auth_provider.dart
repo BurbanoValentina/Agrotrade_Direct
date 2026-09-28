@@ -54,6 +54,23 @@ class AuthProvider extends ChangeNotifier {
     );
   }
 
+  /// Cambia la contraseña (REQ-43, y primer ingreso de empleados invitados:
+  /// ver [AppUser.mustSetPassword]). Devuelve `false` con [errorMessage].
+  Future<bool> changePassword(String newPassword) async {
+    _setLoading(true);
+    try {
+      await _repository.changePassword(newPassword);
+      _currentUser = _currentUser?.copyWith(mustSetPassword: false);
+      _errorMessage = null;
+      return true;
+    } on RepositoryException catch (e) {
+      _errorMessage = e.message;
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   /// Vuelve a leer la sesión guardada (ej. al volver a la app).
   Future<void> restoreSession() async {
     try {

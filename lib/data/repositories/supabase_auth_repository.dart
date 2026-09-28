@@ -143,7 +143,28 @@ class SupabaseAuthRepository implements AuthRepository {
 
     return profile == null
         ? _userFromMetadata(user) // el trigger de registro aún no creó el perfil
-        : AppUser.fromProfile(profile, fallbackEmail: user.email);
+        : AppUser.fromProfile(profile,
+            fallbackEmail: user.email, mustSetPassword: _mustSetPassword(user));
+  }
+
+  /// Marca que pone la Edge Function admin-users al invitar a un empleado.
+  static bool _mustSetPassword(User user) =>
+      user.userMetadata?['must_set_password'] == true;
+
+  @override
+  Future<void> changePassword(String newPassword) async {
+    if (_supabase.auth.currentUser == null) {
+      throw const RepositoryException('Debes iniciar sesión.');
+    }
+    validateNewPassword(newPassword);
+    try {
+      await _supabase.auth.updateUser(UserAttributes(
+        password: newPassword,
+        data: {'must_set_password': false},
+      ));
+    } catch (e) {
+      throw mapSupabaseError(e);
+    }
   }
 
   static AppUser _userFromMetadata(User user) {
@@ -155,6 +176,7 @@ class SupabaseAuthRepository implements AuthRepository {
       role: parseUserRole(meta['role'] as String?),
       companyName: meta['company_name'] as String?,
       country: meta['country'] as String?,
+      mustSetPassword: _mustSetPassword(user),
     );
   }
 

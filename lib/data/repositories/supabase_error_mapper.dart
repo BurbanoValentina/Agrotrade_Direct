@@ -41,6 +41,23 @@ RepositoryException mapSupabaseError(Object error) {
     return _mapStorageError(error);
   }
 
+  // Edge Functions (ej. admin-users): responden {"error": "mensaje en español"}.
+  if (error is FunctionException) {
+    final details = error.details;
+    if (details is Map && details['error'] is String) {
+      return RepositoryException(details['error'] as String);
+    }
+    if (error.status == 401) {
+      return const RepositoryException('Tu sesión expiró. Inicia sesión de nuevo.');
+    }
+    if (error.status == 404) {
+      return const RepositoryException(
+          'La función del servidor no está publicada. Avisa al equipo de backend.');
+    }
+    debugPrint('FunctionException ${error.status}: ${error.details}');
+    return const RepositoryException('Ocurrió un error en el servidor. Intenta de nuevo.');
+  }
+
   debugPrint('Error no controlado en repositorio: $error');
   return const RepositoryException(_connectionMessage);
 }
@@ -81,6 +98,11 @@ RepositoryException _mapAuthError(AuthException error) {
     case 'user_already_exists':
     case 'email_exists':
       return const RepositoryException('Ya existe una cuenta con ese correo.');
+    case 'same_password':
+      return const RepositoryException('La nueva contraseña debe ser distinta de la actual.');
+    case 'reauthentication_needed':
+      return const RepositoryException(
+          'Por seguridad, cierra sesión y vuelve a entrar antes de cambiar la contraseña.');
     case 'weak_password':
       return const RepositoryException(
           'La contraseña es muy débil. Usa al menos 6 caracteres, combinando letras y números.');

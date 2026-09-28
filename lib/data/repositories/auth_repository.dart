@@ -26,7 +26,21 @@ abstract class AuthRepository {
   /// sesión (o si la cuenta fue bloqueada). Se llama al abrir la app.
   Future<AppUser?> restoreSession();
 
+  /// Cambia la contraseña del usuario con sesión iniciada (REQ-43) y quita la
+  /// marca `mustSetPassword` de las cuentas invitadas. Mínimo 6 caracteres.
+  Future<void> changePassword(String newPassword);
+
   Future<void> logout();
+}
+
+/// Largo mínimo de contraseña (el predeterminado de Supabase Auth).
+const int minPasswordLength = 6;
+
+void validateNewPassword(String password) {
+  if (password.length < minPasswordLength) {
+    throw const RepositoryException(
+        'La contraseña debe tener al menos $minPasswordLength caracteres.');
+  }
 }
 
 /// Implementación falsa en memoria, solo para desarrollar la UI (REQ-04).
@@ -86,6 +100,14 @@ class MockAuthRepository implements AuthRepository {
 
   @override
   Future<AppUser?> restoreSession() async => _session;
+
+  @override
+  Future<void> changePassword(String newPassword) async {
+    if (_session == null) throw const RepositoryException('Debes iniciar sesión.');
+    validateNewPassword(newPassword);
+    _session = _session!.copyWith(mustSetPassword: false);
+    _usersByEmail[_session!.email.toLowerCase()] = _session!;
+  }
 
   @override
   Future<void> logout() async {

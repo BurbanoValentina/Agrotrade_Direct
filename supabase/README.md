@@ -6,6 +6,7 @@ Responsable: Johan Delgado (Backend & Database Engineer).
 
 ```
 supabase/
+├── functions/    Edge Functions (código que corre en Supabase con la clave service_role)
 ├── migrations/   Cambios de esquema versionados, en orden de aplicación
 └── seed.sql      Datos de prueba (exportador demo + 5 ofertas)
 ```
@@ -22,6 +23,7 @@ Cada archivo de `migrations/` se llama `AAAAMMDDHHMMSS_descripcion.sql` (formato
 | `20260926000000_negotiation_flow.sql` | Flujo estilo InDrive: `negotiation_rounds`, RPC `counter_offer` / `accept_negotiation` / `reject_negotiation` / `cancel_negotiation` / `confirm_negotiation`, confirmación doble, límite de 10 rondas, descuento de volumen (REQ-15, REQ-16, REQ-17) |
 | `20260926010000_operation_history.sql` | RPC `my_operation_history` y `negotiation_timeline` (REQ-19, base de REQ-30); impide borrar ofertas con tratos confirmados; corrige la regla de revisión de alertas/reportes ante borrados en cascada |
 | `20260927000000_certifications.sql` | Bucket privado `certifications` (PDF ≤ 5 MB), tabla `certifications`, RPC `review_certification` y campo calculado `offers.verified_certifications` (REQ-36) |
+| `20260927010000_user_warnings.sql` | Advertencias a usuarios (`user_warnings`, RPC `warn_user` / `acknowledge_warning`) con suspensión automática a las 3 (REQ-33) |
 
 ## Flujo de negociación (REQ-14 a REQ-17)
 
@@ -132,6 +134,31 @@ Exportador sube PDF (Storage) + registra certificado ──► pending
 - **Sello en las ofertas:** `select('*, verified_certifications')` devuelve las certificaciones de la oferta que el vendedor tiene verificadas y vigentes (sin distinguir mayúsculas).
 
 En Flutter: `CertificationRepository` (`uploadCertification`, `fetchMyCertifications`, `fetchPendingCertifications`, `reviewCertification`, `deleteCertification`, `getCertificationFileUrl`) y `CropOffer.verifiedCertifications` / `isCertificationVerified(name)`.
+
+## Panel admin: advertencias y Edge Function `admin-users` (REQ-33)
+
+**Advertencias** (permiso `userManagement`): `rpc('warn_user', {p_user_id, p_reason, p_report_id})` → `{warning_id, warnings_count, auto_blocked}`. Si viene de un reporte, este queda en `accionTomada`. **A la 3.ª advertencia la cuenta se suspende sola** (fila en `blocked_users`; un admin la desbloquea borrando esa fila). El usuario ve las suyas en `user_warnings` y las marca como leídas con `rpc('acknowledge_warning', {p_warning_id})`.
+
+**Edge Function `admin-users`** (`supabase/functions/admin-users/`): operaciones que requieren la clave `service_role`, que nunca va en la app.
+
+| Acción (`body.action`) | Requiere | Qué hace |
+| :--- | :--- | :--- |
+| `create_staff` (`email`, `name`, `permissions[]`, `is_super_admin`) | `employeeManagement` (solo otorga permisos propios; super admin solo lo crea otro super admin) | Invita por correo; el empleado entra con el enlace y la app le pide crear contraseña (`AppUser.mustSetPassword`) |
+| `delete_user` (`user_id`) | `userManagement` (+ `employeeManagement` si es staff) | Borra la cuenta y sus PDF de certificados. **No** borra cuentas con tratos confirmados: hay que bloquearlas |
+
+Las reglas están en `rules.ts` y se prueban con Node: `node --test supabase/functions/admin-users/rules.test.ts`.
+
+### Publicar la Edge Function
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass   # solo esta terminal
+supabase login                                                # abre el navegador
+supabase functions deploy admin-users --project-ref <ref-del-proyecto> --use-api
+```
+
+`<ref-del-proyecto>` es el código de la URL de Supabase (`https://<ref>.supabase.co`). Para volver a publicar tras un cambio se repite el último comando.
+
+**Enlace de invitación:** en *Authentication → URL Configuration* agregar la URL de la app en *Redirect URLs* (en desarrollo web: `http://localhost:8080/**`) y, opcionalmente, definir el secreto `STAFF_INVITE_REDIRECT_URL` (*Edge Functions → Secrets*) con esa URL.
 
 ## Backup y restauración (REQ-40)
 

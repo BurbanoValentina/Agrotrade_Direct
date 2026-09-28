@@ -118,6 +118,21 @@ void main() {
       expect(auth.errorMessage, 'Ya existe una cuenta con ese correo.');
     });
 
+    test('changePassword exige 6 caracteres y quita mustSetPassword', () async {
+      final repo = MockAuthRepository();
+      const invited = AppUser(
+          id: 's1', name: 'Soporte', email: 's@x.com', role: UserRole.staff, mustSetPassword: true);
+      final auth = AuthProvider(repo, initialUser: invited);
+      await repo.login(email: 's@x.com', password: 'temporal'); // sesión en el mock
+
+      expect(await auth.changePassword('123'), isFalse);
+      expect(auth.errorMessage, contains('al menos 6'));
+      expect(auth.currentUser!.mustSetPassword, isTrue);
+
+      expect(await auth.changePassword('NuevaClave2026'), isTrue);
+      expect(auth.currentUser!.mustSetPassword, isFalse);
+    });
+
     test('restoreSession recupera la sesión y logout la cierra', () async {
       final repo = MockAuthRepository();
       await AuthProvider(repo).login('a@x.com', '123456');

@@ -107,6 +107,24 @@ Backend listo (ver `supabase/README.md` → *Certificaciones*). Repositorio: `co
 
 ---
 
+## REQ-33 — Panel admin: empleados, borrar cuentas y advertencias
+
+Backend listo (ver `supabase/README.md` → *Panel admin*). Repositorio: `context.read<ModerationRepository>()`.
+
+1. **Crear empleado** (`admin_employees_screen.dart`): reemplazar `createEmployee` del mock (que genera contraseña) por
+   `inviteStaff(email:, name:, permissions: [AdminPermission...], isSuperAdmin:)`. Ya no hay contraseña que mostrar: el empleado recibe un correo de invitación.
+2. **Primer ingreso del empleado:** si `authProvider.currentUser!.mustSetPassword` es `true`, mostrar una pantalla "Crea tu contraseña" antes del panel y llamar `authProvider.changePassword(nueva)`.
+3. **Borrar cuenta** (`admin_users_screen.dart`): `deleteUser(userId)`. Si tiene tratos confirmados la función responde *"...Bloquéalo en lugar de borrarlo."* → ofrecer el botón de bloquear.
+4. **Advertir** (desde un reporte o desde el usuario): `warnUser(userId, motivo, reportId:)` → `WarningResult`. Si `autoBlocked` es `true`, avisar *"El usuario fue suspendido automáticamente (3 advertencias)"*. Historial: `fetchUserWarnings(userId)`.
+5. **Lado del usuario advertido:** al entrar, `fetchMyWarnings()`; si hay alguna con `!isAcknowledged`, mostrar un aviso y llamar `acknowledgeWarning(id)` al cerrarlo.
+6. **Quitar la contraseña maestra** (`adminGateEmail` / `adminGatePassword` en `mock_admin_data.dart`) y el `loginEmployee` del mock: los empleados usan el login normal y se detectan con `user.isStaff`.
+
+## REQ-43 — Cambiar contraseña (Valery)
+
+`authProvider.changePassword(nueva)` → `bool` y `authProvider.errorMessage` (mínimo 6 caracteres; mensajes en español como *"La nueva contraseña debe ser distinta de la actual."*).
+
+---
+
 ## Carga de ofertas (Market)
 
 `MarketProvider.loadOffers()` ya no se queda cargando para siempre si falla. Ahora expone `market.loadError`. Falta mostrarlo en `market_screen.dart` (mensaje + botón "Reintentar" que llame a `market.loadOffers()`), en lugar de la lista vacía.
