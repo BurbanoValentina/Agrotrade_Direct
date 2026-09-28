@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/user_role.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../providers/market_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../widgets/role_toggle.dart';
@@ -14,7 +16,7 @@ import 'widgets/create_offer_sheet.dart';
 import 'widgets/filter_sheet.dart';
 import 'widgets/offer_card.dart';
 
-/// Pantalla "Live Market" — REQ-06 a REQ-13.
+/// Pantalla "Live Market" — REQ-06 a REQ-13 & REQ-31 (Traducción Dinámica).
 class MarketScreen extends StatefulWidget {
   const MarketScreen({super.key});
 
@@ -36,7 +38,11 @@ class _MarketScreenState extends State<MarketScreen> {
     final market = context.watch<MarketProvider>();
     final user = context.watch<AuthProvider>().currentUser;
     final themeProvider = context.watch<ThemeProvider>();
+    final localeProvider = context.watch<LocaleProvider>();
     final isExporter = user?.role == UserRole.exportador;
+
+    // Helper de traducción dinámico (REQ-31)
+    final loc = AppLocalizations.of(context);
 
     return Scaffold(
       floatingActionButton: isExporter
@@ -61,9 +67,9 @@ class _MarketScreenState extends State<MarketScreen> {
               },
               backgroundColor: AppColors.gold,
               icon: const Icon(Icons.add, color: Colors.black),
-              label: const Text(
-                'Publicar Oferta',
-                style: TextStyle(
+              label: Text(
+                loc.translate('publish_offer'),
+                style: const TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.bold,
                 ),
@@ -80,38 +86,67 @@ class _MarketScreenState extends State<MarketScreen> {
               if (user != null) RoleToggle(selected: user.role),
               const SizedBox(height: 20),
 
-              // Cabecera con Título y Botón de prueba para REQ-26 (Tema Claro / Oscuro)
+              // Cabecera con Título traducido, Selector de Idioma y Tema
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Live Market',
-                      style: Theme.of(context).textTheme.headlineLarge),
-                  IconButton(
-                    style: IconButton.styleFrom(
-                      backgroundColor: themeProvider.isDarkMode
-                          ? AppColors.surfaceAlt
-                          : AppColors.lightSurfaceAlt,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  Text(
+                    loc.translate('live_market'),
+                    style: Theme.of(context).textTheme.headlineLarge,
+                  ),
+                  Row(
+                    children: [
+                      // REQ-31: Selector de idioma
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: themeProvider.isDarkMode
+                              ? AppColors.surfaceAlt
+                              : AppColors.lightSurfaceAlt,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          context.read<LocaleProvider>().toggleLanguage();
+                        },
+                        child: Text(
+                          localeProvider.isSpanish ? 'ES' : 'EN',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.gold,
+                          ),
+                        ),
                       ),
-                    ),
-                    icon: Icon(
-                      themeProvider.isDarkMode
-                          ? Icons.wb_sunny_outlined
-                          : Icons.nightlight_round,
-                      color: AppColors.gold,
-                    ),
-                    onPressed: () {
-                      context
-                          .read<ThemeProvider>()
-                          .toggleTheme(!themeProvider.isDarkMode);
-                    },
+                      const SizedBox(width: 8),
+                      // REQ-26: Selector de tema
+                      IconButton(
+                        style: IconButton.styleFrom(
+                          backgroundColor: themeProvider.isDarkMode
+                              ? AppColors.surfaceAlt
+                              : AppColors.lightSurfaceAlt,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        icon: Icon(
+                          themeProvider.isDarkMode
+                              ? Icons.wb_sunny_outlined
+                              : Icons.nightlight_round,
+                          color: AppColors.gold,
+                        ),
+                        onPressed: () {
+                          context
+                              .read<ThemeProvider>()
+                              .toggleTheme(!themeProvider.isDarkMode);
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
-                '${market.visibleOffers.length} ofertas activas de Colombia',
+                '${market.visibleOffers.length} ${loc.translate('active_offers')}',
                 style: TextStyle(
                   color: themeProvider.isDarkMode
                       ? AppColors.textSecondary
@@ -121,7 +156,7 @@ class _MarketScreenState extends State<MarketScreen> {
               ),
               const SizedBox(height: 16),
 
-              // REQ-11 & REQ-12: Caja de Búsqueda y Botón de Filtro Avanzado
+              // Caja de Búsqueda
               Row(
                 children: [
                   Expanded(
@@ -132,10 +167,10 @@ class _MarketScreenState extends State<MarketScreen> {
                             ? AppColors.textPrimary
                             : AppColors.lightTextPrimary,
                       ),
-                      decoration: const InputDecoration(
-                        hintText: 'Buscar variedad, origen...',
-                        prefixIcon:
-                            Icon(Icons.search, color: AppColors.textMuted),
+                      decoration: InputDecoration(
+                        hintText: loc.translate('search_placeholder'),
+                        prefixIcon: const Icon(Icons.search,
+                            color: AppColors.textMuted),
                       ),
                     ),
                   ),
@@ -166,23 +201,23 @@ class _MarketScreenState extends State<MarketScreen> {
               ),
               const SizedBox(height: 12),
 
-              // REQ-12: Chips de Filtro Rápido
+              // Chips de Filtro Rápido
               Row(
                 children: [
                   _FilterChip(
-                    label: 'All',
+                    label: loc.translate('all'),
                     selected: market.filter == MarketFilter.all,
                     onTap: () => market.setFilter(MarketFilter.all),
                   ),
                   const SizedBox(width: 8),
                   _FilterChip(
-                    label: 'Coffee',
+                    label: loc.translate('coffee'),
                     selected: market.filter == MarketFilter.cafe,
                     onTap: () => market.setFilter(MarketFilter.cafe),
                   ),
                   const SizedBox(width: 8),
                   _FilterChip(
-                    label: 'Cacao',
+                    label: loc.translate('cacao'),
                     selected: market.filter == MarketFilter.cacao,
                     onTap: () => market.setFilter(MarketFilter.cacao),
                   ),
@@ -211,9 +246,7 @@ class _MarketScreenState extends State<MarketScreen> {
                         changePercent: -0.1),
                     SizedBox(width: 8),
                     StatChip(
-                        label: 'Robusta',
-                        value: '\$2,340',
-                        changePercent: 2.1),
+                        label: 'Robusta', value: '\$2,340', changePercent: 2.1),
                   ],
                 ),
               ),
