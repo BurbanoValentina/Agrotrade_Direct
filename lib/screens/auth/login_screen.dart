@@ -142,8 +142,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                     ),
                   ),
-                  validator: (v) => (v == null || v.length < 4)
-                      ? 'Mínimo 4 caracteres'
+                  validator: (v) => (v == null || v.length < 6)
+                      ? 'Mínimo 6 caracteres'
                       : null,
                 ),
                 const SizedBox(height: 24),

@@ -1,5 +1,6 @@
 import '../../models/crop_offer.dart';
 import '../mock/mock_data.dart';
+import '../services/local_storage_service.dart';
 
 /// Contrato para leer/publicar ofertas y enviar contraofertas.
 ///
@@ -17,12 +18,32 @@ abstract class OfferRepository {
   });
 }
 
-/// Implementación en memoria con datos de ejemplo (ver data/mock/mock_data.dart).
+/// Implementación en memoria con datos de ejemplo y caché local para modo offline (REQ-27).
 class MockOfferRepository implements OfferRepository {
+  MockOfferRepository([LocalStorageService? storageService])
+      : _storageService = storageService ?? LocalStorageService();
+
+  final LocalStorageService _storageService;
+
   @override
   Future<List<CropOffer>> fetchOffers() async {
     await Future.delayed(const Duration(milliseconds: 400));
-    return List<CropOffer>.from(mockOffers);
+    try {
+      // 1. Obtenemos las ofertas iniciales o mock
+      final offers = List<CropOffer>.from(mockOffers);
+
+      // 2. REQ-27: Guardamos automáticamente una copia en la memoria del teléfono
+      await _storageService.cacheOffers(offers);
+
+      return offers;
+    } catch (e) {
+      // 3. REQ-27: Si falla la red/fuente, devolvemos lo que esté guardado en caché
+      final cached = await _storageService.getCachedOffers();
+      if (cached.isNotEmpty) {
+        return cached;
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -31,9 +52,6 @@ class MockOfferRepository implements OfferRepository {
     required double proposedPricePerMt,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
-    // TODO(negociación real): aquí se creará una fila en la tabla
-    // "negotiations" de Supabase y se notificará al exportador (REQ-14,
-    // REQ-15, REQ-20). Por ahora solo simula éxito.
     return true;
   }
 }
