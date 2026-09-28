@@ -83,6 +83,16 @@ Backend listo (ver `supabase/README.md` → *Historial de operaciones*).
 
 ---
 
+## Autenticación (REQ-02 a REQ-04)
+
+Ya resuelto en backend, sin cambios necesarios en las pantallas:
+- **La sesión se restaura al abrir la app** (`main.dart` llama a `restoreSession()` antes de `runApp`): si el usuario ya había entrado, va directo al Home.
+- **Mensajes de error en español** en `auth.errorMessage` (ya se muestran en los SnackBar de login y registro): *"Correo o contraseña incorrectos."*, *"Ya existe una cuenta con ese correo."*, *"La contraseña es muy débil..."*, *"Tu cuenta está bloqueada: [motivo]..."*, *"Te enviamos un correo de confirmación..."*.
+
+Pendiente de UI (opcional): hoy la validación del formulario acepta contraseñas de 4 caracteres, pero Supabase exige mínimo 6 por defecto → cambiar el validador a `v.length < 6`.
+
+---
+
 ## Carga de ofertas (Market)
 
 `MarketProvider.loadOffers()` ya no se queda cargando para siempre si falla. Ahora expone `market.loadError`. Falta mostrarlo en `market_screen.dart` (mensaje + botón "Reintentar" que llame a `market.loadOffers()`), en lugar de la lista vacía.
@@ -101,7 +111,8 @@ El backend de roles y permisos ya existe (ver `supabase/README.md` → *Roles y 
        .select().eq('user_id', supabase.auth.currentUser!.id).single();
    // row['is_super_admin'], row['permissions'] (mismos nombres que AdminPermission)
    ```
-3. **Rol `staff` en `AppUser`.** Hoy todo rol distinto de `exportador` se convierte en `importador` (`supabase_auth_repository.dart` y `app_user.dart`). Agregar el caso `staff`.
+3. ~~Rol `staff` en `AppUser`~~ ✅ **Hecho en backend:** `AppUser.role` puede ser `UserRole.staff` (getter `user.isStaff`) y trae `user.isTester` (REQ-29). Después del login normal: si `user.isStaff` → llevar al `AdminShell`; si `user.isTester` → mostrar el panel de QA de Valentina.
+   El login ya **rechaza usuarios bloqueados** con el motivo (tabla `blocked_users`), así que `admin.isUserBlocked(email)` en `login_screen.dart` (mock) se puede quitar al conectar Supabase.
 4. **Datos del panel ya disponibles en Supabase:** `blocked_users`, `user_reports`, `suspicious_activities`, `platform_config`, `rpc('admin_dashboard_stats')` (JSON con los campos de `DashboardStats`) y `rpc('set_tester', ...)`.
 5. **Crear empleados desde la app** requiere una Edge Function (crear usuarios de Auth necesita la clave `service_role`, que nunca va en la app). Queda pendiente en backend; por ahora el primer admin se crea a mano (ver `supabase/README.md`).
 

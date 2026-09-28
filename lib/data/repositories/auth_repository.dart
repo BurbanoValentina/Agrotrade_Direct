@@ -1,16 +1,18 @@
 import '../../models/app_user.dart';
 import '../../models/user_role.dart';
+import 'repository_exception.dart';
 
-/// Contrato de autenticación.
+/// Contrato de autenticación (REQ-02 a REQ-04).
 ///
-/// IMPORTANTE PARA EL BACKEND DEV: cuando conectes Supabase, crea una clase
-/// `SupabaseAuthRepository implements AuthRepository` en un archivo nuevo
-/// (ej. `supabase_auth_repository.dart`) e implementa estos mismos métodos
-/// usando `supabase_flutter`. Luego solo cambia una línea en `main.dart`
-/// (ver README) — ninguna pantalla necesita modificarse.
+/// Implementaciones: [MockAuthRepository] (en memoria) y
+/// `SupabaseAuthRepository`. Todos los métodos lanzan [RepositoryException]
+/// con un mensaje para el usuario (ej. "Correo o contraseña incorrectos.").
 abstract class AuthRepository {
   Future<AppUser> login({required String email, required String password});
 
+  /// Crea la cuenta como exportador o importador ([UserRole.staff] no se
+  /// puede registrar desde la app). Si el proyecto exige confirmar el correo,
+  /// lanza [RepositoryException] pidiendo confirmarlo antes de iniciar sesión.
   Future<AppUser> register({
     required String name,
     required String email,
@@ -20,6 +22,10 @@ abstract class AuthRepository {
     String? country,
   });
 
+  /// Usuario de la sesión guardada en el dispositivo, o `null` si no hay
+  /// sesión (o si la cuenta fue bloqueada). Se llama al abrir la app.
+  Future<AppUser?> restoreSession();
+
   Future<void> logout();
 }
 
@@ -27,6 +33,7 @@ abstract class AuthRepository {
 /// No valida contraseñas de verdad: sirve para navegar el flujo completo.
 class MockAuthRepository implements AuthRepository {
   final Map<String, AppUser> _usersByEmail = {};
+  AppUser? _session;
 
   @override
   Future<AppUser> login({
@@ -35,7 +42,7 @@ class MockAuthRepository implements AuthRepository {
   }) async {
     await Future.delayed(const Duration(milliseconds: 500));
     final existing = _usersByEmail[email.toLowerCase()];
-    if (existing != null) return existing;
+    if (existing != null) return _session = existing;
 
     // Si no existe (demo), se crea un exportador de ejemplo para poder
     // seguir probando la app sin tener que registrarse primero.
@@ -46,7 +53,7 @@ class MockAuthRepository implements AuthRepository {
       role: UserRole.exportador,
     );
     _usersByEmail[email.toLowerCase()] = demoUser;
-    return demoUser;
+    return _session = demoUser;
   }
 
   @override
@@ -59,6 +66,12 @@ class MockAuthRepository implements AuthRepository {
     String? country,
   }) async {
     await Future.delayed(const Duration(milliseconds: 500));
+    if (role == UserRole.staff) {
+      throw const RepositoryException('Solo puedes registrarte como exportador o importador.');
+    }
+    if (_usersByEmail.containsKey(email.toLowerCase())) {
+      throw const RepositoryException('Ya existe una cuenta con ese correo.');
+    }
     final user = AppUser(
       id: 'user-${DateTime.now().millisecondsSinceEpoch}',
       name: name,
@@ -68,11 +81,15 @@ class MockAuthRepository implements AuthRepository {
       country: country,
     );
     _usersByEmail[email.toLowerCase()] = user;
-    return user;
+    return _session = user;
   }
+
+  @override
+  Future<AppUser?> restoreSession() async => _session;
 
   @override
   Future<void> logout() async {
     await Future.delayed(const Duration(milliseconds: 200));
+    _session = null;
   }
 }

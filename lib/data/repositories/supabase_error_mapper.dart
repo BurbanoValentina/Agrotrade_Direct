@@ -34,10 +34,49 @@ RepositoryException mapSupabaseError(Object error) {
   }
 
   if (error is AuthException) {
-    return RepositoryException(error.message);
+    return _mapAuthError(error);
   }
 
   debugPrint('Error no controlado en repositorio: $error');
-  return const RepositoryException(
-      'No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.');
+  return const RepositoryException(_connectionMessage);
+}
+
+const _connectionMessage =
+    'No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.';
+
+/// Errores de Supabase Auth (códigos: supabase.com/docs/guides/auth/debugging/error-codes).
+RepositoryException _mapAuthError(AuthException error) {
+  switch (error.code) {
+    case 'invalid_credentials':
+      return const RepositoryException('Correo o contraseña incorrectos.');
+    case 'email_not_confirmed':
+      return const RepositoryException(
+          'Debes confirmar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.');
+    case 'user_already_exists':
+    case 'email_exists':
+      return const RepositoryException('Ya existe una cuenta con ese correo.');
+    case 'weak_password':
+      return const RepositoryException(
+          'La contraseña es muy débil. Usa al menos 6 caracteres, combinando letras y números.');
+    case 'email_address_invalid':
+    case 'validation_failed':
+      return const RepositoryException('El correo electrónico no es válido.');
+    case 'over_email_send_rate_limit':
+    case 'over_request_rate_limit':
+      return const RepositoryException(
+          'Demasiados intentos. Espera unos minutos e intenta de nuevo.');
+    case 'signup_disabled':
+      return const RepositoryException('El registro de cuentas está deshabilitado por ahora.');
+    case 'user_banned':
+      return const RepositoryException('Tu cuenta está suspendida.');
+    case 'session_expired':
+    case 'refresh_token_not_found':
+      return const RepositoryException('Tu sesión expiró. Inicia sesión de nuevo.');
+  }
+  // Sin respuesta del servidor (sin internet, DNS, tiempo agotado).
+  if (error is AuthRetryableFetchException || (error.statusCode == null && error.code == null)) {
+    return const RepositoryException(_connectionMessage);
+  }
+  debugPrint('AuthException ${error.code} (${error.statusCode}): ${error.message}');
+  return const RepositoryException('No se pudo completar la autenticación. Intenta de nuevo.');
 }

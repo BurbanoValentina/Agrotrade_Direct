@@ -24,11 +24,16 @@ Future<void> main() async {
     anonKey: SupabaseConstants.supabaseAnonKey,
   );
 
+  // Restaurar la sesión guardada antes de mostrar la app: si el usuario ya
+  // había iniciado sesión (y no está bloqueado) entra directo al Home.
+  final authRepository = SupabaseAuthRepository();
+  final initialUser = await authRepository.restoreSession();
+
   runApp(
     MultiProvider(
       providers: [
         // Repositorios reales de Supabase (PostgreSQL, Auth y RLS)
-        Provider<AuthRepository>(create: (_) => SupabaseAuthRepository()),
+        Provider<AuthRepository>.value(value: authRepository),
         Provider<OfferRepository>(create: (_) => SupabaseOfferRepository()),
         // Admin aún sin backend: sigue en mock hasta tener tablas en Supabase.
         Provider<AdminRepository>(create: (_) => MockAdminRepository()),
@@ -38,7 +43,8 @@ Future<void> main() async {
           create: (_) => ThemeProvider(),
         ),
         ChangeNotifierProvider(
-          create: (ctx) => AuthProvider(ctx.read<AuthRepository>()),
+          create: (ctx) =>
+              AuthProvider(ctx.read<AuthRepository>(), initialUser: initialUser),
         ),
         ChangeNotifierProvider(
           create: (ctx) => MarketProvider(ctx.read<OfferRepository>()),
