@@ -20,19 +20,29 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // GlobalKey para gestionar y ejecutar las validaciones del Formulario
   final _formKey = GlobalKey<FormState>();
+
+  // Controladores de texto para leer la entrada de los campos
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
 
+  // Estado local para alternar la visibilidad del campo de contraseña
+  bool _obscurePassword = true;
+
   @override
   void dispose() {
+    // Liberación de memoria para prevenir memory leaks
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
 
+  /// Maneja la lógica al presionar el botón de inicio de sesión
   Future<void> _submit() async {
+    // Valida todos los TextFormField dentro de este Form
     if (!_formKey.currentState!.validate()) return;
+
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
 
@@ -46,6 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    // Obtiene AdminProvider sin suscribirse a cambios de estado (context.read)
     final admin = context.read<AdminProvider>();
 
     // 2. Verificar si el usuario está bloqueado por el administrador
@@ -63,6 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // 3. Intentar autenticación directa como empleado interno
     final isEmployee = await admin.loginEmployee(email, password);
+    // Verificación de seguridad async: comprueba que el widget siga montado
     if (!mounted) return;
     if (isEmployee) {
       _passwordCtrl.clear();
@@ -73,24 +85,34 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     // 4. Autenticación de usuario regular de la plataforma
+    // (context.read: no se suscribe a cambios de estado)
     final auth = context.read<AuthProvider>();
+
+    // Ejecuta el método asíncrono de autenticación
     final ok = await auth.login(email, password);
+
+    // Verificación de seguridad async: comprueba que el widget siga montado
     if (!mounted) return;
+
     if (ok) {
+      // Redirección a la pantalla principal si el login fue exitoso
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HomeShell()),
       );
     } else {
+      // Muestra un SnackBar con el mensaje de error capturado
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(auth.errorMessage ?? 'Error al iniciar sesión')),
+        SnackBar(
+          content: Text(auth.errorMessage ?? 'Error al iniciar sesión'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }
 
-  bool _obscurePassword = true;
-
   @override
   Widget build(BuildContext context) {
+    // Escucha el AuthProvider para reaccionar a cambios en isLoading (context.watch)
     final auth = context.watch<AuthProvider>();
     final colors = context.colors;
 
@@ -103,14 +125,17 @@ class _LoginScreenState extends State<LoginScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
                 decoration: BoxDecoration(
                   color: colors.surface,
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: colors.border.withValues(alpha: 0.8)),
+                  border:
+                      Border.all(color: colors.border.withValues(alpha: 0.8)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: colors.isDark ? 0.25 : 0.04),
+                      color: Colors.black
+                          .withValues(alpha: colors.isDark ? 0.25 : 0.04),
                       blurRadius: 24,
                       offset: const Offset(0, 8),
                     ),
@@ -141,16 +166,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 8),
                       Center(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             color: colors.gold.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: colors.gold.withValues(alpha: 0.3)),
+                            border: Border.all(
+                                color: colors.gold.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.verified_rounded, size: 13, color: colors.gold),
+                              Icon(Icons.verified_rounded,
+                                  size: 13, color: colors.gold),
                               const SizedBox(width: 4),
                               Text(
                                 'Intercambio B2B Certificado',
@@ -165,41 +193,67 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 32),
+
+                      // Campo de entrada de Correo Electrónico
                       TextFormField(
                         controller: _emailCtrl,
                         keyboardType: TextInputType.emailAddress,
-                        style: TextStyle(color: colors.textPrimary, fontSize: 14),
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        autofillHints: const [AutofillHints.email],
+                        style:
+                            TextStyle(color: colors.textPrimary, fontSize: 14),
                         decoration: InputDecoration(
                           hintText: 'Correo electrónico',
                           labelText: 'Correo electrónico',
-                          prefixIcon: Icon(Icons.mail_outline_rounded, color: colors.textMuted, size: 20),
+                          prefixIcon: Icon(Icons.mail_outline_rounded,
+                              color: colors.textMuted, size: 20),
                         ),
-                        validator: (v) =>
-                            (v == null || !v.contains('@')) ? 'Correo inválido' : null,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Ingresa tu correo';
+                          }
+                          if (!v.contains('@') || !v.contains('.')) {
+                            return 'Correo electrónico inválido';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
+
+                      // Campo de entrada de Contraseña
                       TextFormField(
                         controller: _passwordCtrl,
                         obscureText: _obscurePassword,
-                        style: TextStyle(color: colors.textPrimary, fontSize: 14),
+                        autofillHints: const [AutofillHints.password],
+                        style:
+                            TextStyle(color: colors.textPrimary, fontSize: 14),
                         decoration: InputDecoration(
                           hintText: 'Contraseña',
                           labelText: 'Contraseña',
-                          prefixIcon: Icon(Icons.lock_outline_rounded, color: colors.textMuted, size: 20),
+                          prefixIcon: Icon(Icons.lock_outline_rounded,
+                              color: colors.textMuted, size: 20),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                              _obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
                               color: colors.textMuted,
                               size: 18,
                             ),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword),
                           ),
                         ),
-                        validator: (v) => (v == null || v.length < 4)
+                        // Se mantiene el mínimo de 4 caracteres de main para no
+                        // bloquear credenciales mock de empleados/usuarios
+                        validator: (v) => (v == null || v.length < 6)
                             ? 'Mínimo 4 caracteres'
                             : null,
                       ),
                       const SizedBox(height: 24),
+
+                      // Botón principal de login
                       ElevatedButton(
                         onPressed: auth.isLoading ? null : _submit,
                         child: auth.isLoading
@@ -208,18 +262,26 @@ class _LoginScreenState extends State<LoginScreen> {
                                 width: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: colors.isDark ? Colors.black : Colors.white,
+                                  color: colors.isDark
+                                      ? Colors.black
+                                      : Colors.white,
                                 ),
                               )
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.login_rounded, size: 18, color: colors.isDark ? Colors.black : Colors.white),
+                                  Icon(Icons.login_rounded,
+                                      size: 18,
+                                      color: colors.isDark
+                                          ? Colors.black
+                                          : Colors.white),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Iniciar sesión',
                                     style: TextStyle(
-                                      color: colors.isDark ? Colors.black : Colors.white,
+                                      color: colors.isDark
+                                          ? Colors.black
+                                          : Colors.white,
                                       fontWeight: FontWeight.w700,
                                       fontSize: 15,
                                     ),
@@ -228,18 +290,22 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                       ),
                       const SizedBox(height: 20),
+
+                      // Enlace para ir al Registro (REQ-02 / REQ-03)
                       Wrap(
                         alignment: WrapAlignment.center,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(
                             '¿No tienes cuenta? ',
-                            style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                            style: TextStyle(
+                                color: colors.textSecondary, fontSize: 13),
                           ),
                           GestureDetector(
                             onTap: () {
                               Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                                MaterialPageRoute(
+                                    builder: (_) => const RegisterScreen()),
                               );
                             },
                             child: Text(
@@ -256,15 +322,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 24),
                       const Divider(),
                       const SizedBox(height: 16),
+
+                      // Acceso al panel interno de empleados
                       InkWell(
                         onTap: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+                            MaterialPageRoute(
+                                builder: (_) => const AdminLoginScreen()),
                           );
                         },
                         borderRadius: BorderRadius.circular(14),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
                             color: colors.surfaceAlt,
                             borderRadius: BorderRadius.circular(14),
@@ -273,7 +343,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.admin_panel_settings_rounded, size: 20, color: colors.gold),
+                              Icon(Icons.admin_panel_settings_rounded,
+                                  size: 20, color: colors.gold),
                               const SizedBox(width: 10),
                               Flexible(
                                 child: Text(
@@ -302,6 +373,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
+/// Widget privado para renderizar el logo
 class _Logo extends StatelessWidget {
   const _Logo();
 

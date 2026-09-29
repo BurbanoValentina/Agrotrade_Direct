@@ -6,10 +6,11 @@ import '../../models/user_role.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/responsive_layout.dart';
 import '../../widgets/theme_toggle_button.dart';
+import '../map/trade_map_screen.dart';
 import '../market/market_screen.dart';
 
 /// Contenedor con la barra de navegación inferior de las 4 secciones:
-/// Market, My Deals, Trade Map, Profile.
+/// Market, My Deals, Trade Map (REQ-18), Profile.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -35,13 +36,7 @@ class _HomeShellState extends State<HomeShell> {
         description:
             'Aquí podrás gestionar todas tus propuestas comerciales, contraofertas en tiempo real y el historial de acuerdos cerrados.',
       ),
-      const _PlaceholderScreen(
-        icon: Icons.map_outlined,
-        title: 'Ruta Comercial (Trade Map)',
-        subtitle: 'Trazabilidad y logística Colombia → Unión Europea',
-        description:
-            'Visualiza en tiempo real el transporte marítimo y aduanero de tus cargamentos de café y cacao desde puertos colombianos a Europa.',
-      ),
+      const TradeMapScreen(), // REQ-18: Integración de la pantalla completa de rutas y mapa
       _ProfileScreen(user: user),
     ];
 
@@ -65,8 +60,10 @@ class _HomeShellState extends State<HomeShell> {
           backgroundColor: colors.surface,
           selectedItemColor: colors.gold,
           unselectedItemColor: colors.textSecondary,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
+          selectedLabelStyle:
+              const TextStyle(fontWeight: FontWeight.w800, fontSize: 11),
+          unselectedLabelStyle:
+              const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
           type: BottomNavigationBarType.fixed,
           elevation: 0,
           items: const [
@@ -129,7 +126,8 @@ class _ProfileScreen extends StatelessWidget {
                 border: Border.all(color: colors.border),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: colors.isDark ? 0.25 : 0.04),
+                    color: Colors.black
+                        .withValues(alpha: colors.isDark ? 0.25 : 0.04),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
@@ -141,7 +139,9 @@ class _ProfileScreen extends StatelessWidget {
                     radius: 38,
                     backgroundColor: colors.gold.withValues(alpha: 0.15),
                     child: Text(
-                      user != null && user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                      user != null && user.name.isNotEmpty
+                          ? user.name[0].toUpperCase()
+                          : 'U',
                       style: TextStyle(
                         color: colors.gold,
                         fontSize: 32,
@@ -165,7 +165,8 @@ class _ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: isExporter
                           ? colors.gold.withValues(alpha: 0.12)
@@ -178,20 +179,25 @@ class _ProfileScreen extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      isExporter ? 'Exportador Certificado 🇨🇴' : 'Importador Oficial UE 🇪🇺',
+                      isExporter
+                          ? 'Exportador Certificado 🇨🇴'
+                          : 'Importador Oficial UE 🇪🇺',
                       style: TextStyle(
-                        color: isExporter ? colors.gold : const Color(0xFF3B82F6),
+                        color:
+                            isExporter ? colors.gold : const Color(0xFF3B82F6),
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
                       ),
                     ),
                   ),
-                  if (user?.companyName != null && user.companyName.isNotEmpty) ...[
+                  if (user?.companyName != null &&
+                      user.companyName.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.business_rounded, size: 16, color: colors.textMuted),
+                        Icon(Icons.business_rounded,
+                            size: 16, color: colors.textMuted),
                         const SizedBox(width: 6),
                         Text(
                           user.companyName,
@@ -218,7 +224,8 @@ class _ProfileScreen extends StatelessWidget {
                   context.read<AuthProvider>().logout();
                   Navigator.of(context).pushReplacementNamed('/');
                 },
-                icon: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 18),
+                icon: const Icon(Icons.logout_rounded,
+                    color: Colors.redAccent, size: 18),
                 label: const Text(
                   'Cerrar sesión',
                   style: TextStyle(
@@ -228,8 +235,10 @@ class _ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.4)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  side: BorderSide(
+                      color: Colors.redAccent.withValues(alpha: 0.4)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
                 ),
               ),
             ),
@@ -240,6 +249,7 @@ class _ProfileScreen extends StatelessWidget {
   }
 }
 
+/// Pantalla temporal para módulos en desarrollo asignados a otros integrantes
 class _PlaceholderScreen extends StatelessWidget {
   const _PlaceholderScreen({
     required this.icon,
@@ -276,7 +286,8 @@ class _PlaceholderScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: colors.gold.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
-                      border: Border.all(color: colors.gold.withValues(alpha: 0.3)),
+                      border:
+                          Border.all(color: colors.gold.withValues(alpha: 0.3)),
                     ),
                     child: Icon(icon, size: 40, color: colors.gold),
                   ),
@@ -304,11 +315,15 @@ class _PlaceholderScreen extends StatelessWidget {
                   Text(
                     description,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: colors.textSecondary, fontSize: 13, height: 1.45),
+                    style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 13,
+                        height: 1.45),
                   ),
                   const SizedBox(height: 20),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
                       color: colors.surfaceAlt,
                       borderRadius: BorderRadius.circular(20),
@@ -317,11 +332,15 @@ class _PlaceholderScreen extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.lock_clock_rounded, size: 14, color: colors.textMuted),
+                        Icon(Icons.lock_clock_rounded,
+                            size: 14, color: colors.textMuted),
                         const SizedBox(width: 6),
                         Text(
                           'Módulo en fase de integración',
-                          style: TextStyle(color: colors.textMuted, fontSize: 11, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              color: colors.textMuted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),

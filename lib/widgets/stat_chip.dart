@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-
 import '../core/theme/app_theme.dart';
 
-/// Chip de precio de mercado (ej. "Arabica ICE $4,210 +1.2%") en el ticker del mercado.
+/// Chip de estadística/indicador bursátil (Arabica, Cacao, USD/EUR, etc.).
+/// Se muestra en el ticker del mercado, ej. "Arabica ICE $4,210 +1.2%".
 class StatChip extends StatelessWidget {
   const StatChip({
     super.key,
@@ -72,7 +72,9 @@ class StatChip extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      isUp ? Icons.arrow_drop_up_rounded : Icons.arrow_drop_down_rounded,
+                      isUp
+                          ? Icons.arrow_drop_up_rounded
+                          : Icons.arrow_drop_down_rounded,
                       size: 14,
                       color: changeColor,
                     ),

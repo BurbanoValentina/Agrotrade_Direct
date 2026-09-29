@@ -3,12 +3,15 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../models/crop_offer.dart';
+import 'offer_detail_sheet.dart';
 
-final _currencyFmt = NumberFormat.currency(locale: 'en_US', symbol: '\$', decimalDigits: 0);
+final _currencyFmt =
+    NumberFormat.currency(locale: 'en_US', symbol: '\$', decimalDigits: 0);
 
-/// Tarjeta de oferta con estética fintech de lujo para "Live Market":
-/// variedad + estado, origen, precio/volumen/destino, certificaciones,
-/// vendedor con rating, y botón de negociación.
+/// Tarjeta de oferta interactiva (REQ-13) con estética fintech de lujo para
+/// "Live Market": variedad + estado, origen, precio/volumen/destino,
+/// certificaciones, vendedor con rating y botón de negociación.
+/// Permite tocar la tarjeta completa para abrir el detalle de la oferta.
 class OfferCard extends StatelessWidget {
   const OfferCard({
     super.key,
@@ -52,215 +55,239 @@ class OfferCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top Row: Icon + Variety/Origin + Status Chip
-            Row(
+      // Material transparente para que el efecto ripple del InkWell se vea
+      // por encima del fondo del Container y respete las esquinas redondeadas
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          // REQ-13: Al hacer tap sobre la tarjeta se abre el detalle de la oferta
+          onTap: () => showOfferDetailSheet(
+            context,
+            offer: offer,
+            onMakeOffer: onMakeOffer,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: isCoffee
-                        ? const Color(0xFF8D6E63).withValues(alpha: 0.15)
-                        : const Color(0xFF5D4037).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isCoffee
-                          ? const Color(0xFF8D6E63).withValues(alpha: 0.4)
-                          : const Color(0xFF5D4037).withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      isCoffee ? '☕' : '🍫',
-                      style: const TextStyle(fontSize: 20),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        offer.variety,
-                        style: TextStyle(
-                          color: colors.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
+                // Top Row: Icon + Variety/Origin + Status Chip
+                Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: isCoffee
+                            ? const Color(0xFF8D6E63).withValues(alpha: 0.15)
+                            : const Color(0xFF5D4037).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isCoffee
+                              ? const Color(0xFF8D6E63).withValues(alpha: 0.4)
+                              : const Color(0xFF5D4037).withValues(alpha: 0.4),
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Row(
+                      child: Center(
+                        child: Text(
+                          isCoffee ? '☕' : '🍫',
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.location_on_outlined, size: 13, color: colors.textMuted),
-                          const SizedBox(width: 3),
                           Text(
-                            '${offer.originRegion} · ${offer.originCountry}',
-                            style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                            offer.variety,
+                            style: TextStyle(
+                              color: colors.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on_outlined,
+                                  size: 13, color: colors.textMuted),
+                              const SizedBox(width: 3),
+                              Text(
+                                '${offer.originRegion} · ${offer.originCountry}',
+                                style: TextStyle(
+                                    color: colors.textSecondary, fontSize: 12),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: statusColor.withValues(alpha: 0.4)),
-                  ),
-                  child: Text(
-                    offer.status.label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: statusColor,
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-
-            // Metrics Row (Ask Price, Volume, Destination)
-            Row(
-              children: [
-                _InfoBlock(
-                  label: 'ASK PRICE',
-                  value: '${_currencyFmt.format(offer.askPricePerMt)}/MT',
-                  valueColor: colors.gold,
-                ),
-                const SizedBox(width: 8),
-                _InfoBlock(
-                  label: 'VOLUME',
-                  value: '${offer.volumeMt.toStringAsFixed(0)} MT',
-                  caption: '≈ ${_currencyFmt.format(offer.estimatedTotalUsd)} total',
-                ),
-                const SizedBox(width: 8),
-                _InfoBlock(
-                  label: 'DESTINO',
-                  value: offer.destinationCountry,
-                ),
-              ],
-            ),
-
-            // Certifications
-            if (offer.certifications.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: offer.certifications.map((c) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: colors.surfaceAlt,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: colors.border),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.verified_outlined, size: 12, color: colors.gold),
-                        const SizedBox(width: 4),
-                        Text(
-                          c,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: colors.textSecondary,
-                          ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 9, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: statusColor.withValues(alpha: 0.4)),
+                      ),
+                      child: Text(
+                        offer.status.label,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: statusColor,
                         ),
-                      ],
+                      ),
                     ),
-                  );
-                }).toList(),
-              ),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 14),
 
-            const SizedBox(height: 14),
-            const Divider(height: 1),
-            const SizedBox(height: 12),
+                // Metrics Row (Ask Price, Volume, Destination)
+                Row(
+                  children: [
+                    _InfoBlock(
+                      label: 'ASK PRICE',
+                      value: '${_currencyFmt.format(offer.askPricePerMt)}/MT',
+                      valueColor: colors.gold,
+                    ),
+                    const SizedBox(width: 8),
+                    _InfoBlock(
+                      label: 'VOLUME',
+                      value: '${offer.volumeMt.toStringAsFixed(0)} MT',
+                      caption:
+                          '≈ ${_currencyFmt.format(offer.estimatedTotalUsd)} total',
+                    ),
+                    const SizedBox(width: 8),
+                    _InfoBlock(
+                      label: 'DESTINO',
+                      value: offer.destinationCountry,
+                    ),
+                  ],
+                ),
 
-            // Seller Row
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 13,
-                  backgroundColor: colors.gold.withValues(alpha: 0.15),
-                  child: Text(
-                    offer.sellerName.substring(0, 1).toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colors.gold,
-                      fontWeight: FontWeight.w800,
+                // Certifications
+                if (offer.certifications.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: offer.certifications.map((c) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: colors.surfaceAlt,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: colors.border),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.verified_outlined,
+                                size: 12, color: colors.gold),
+                            const SizedBox(width: 4),
+                            Text(
+                              c,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: colors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+
+                const SizedBox(height: 14),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+
+                // Seller Row
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 13,
+                      backgroundColor: colors.gold.withValues(alpha: 0.15),
+                      child: Text(
+                        offer.sellerName.substring(0, 1).toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colors.gold,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        offer.sellerName,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: colors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const Icon(Icons.star_rounded,
+                        size: 15, color: Color(0xFFF59E0B)),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${offer.sellerRating}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${offer.sellerTrades} trades',
+                      style: TextStyle(fontSize: 11, color: colors.textMuted),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Action Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: ElevatedButton.icon(
+                    onPressed: onMakeOffer,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colors.gold,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      elevation: 1,
+                    ),
+                    icon: Icon(
+                      Icons.handshake_rounded,
+                      size: 18,
+                      color: colors.isDark ? Colors.black : Colors.white,
+                    ),
+                    label: Text(
+                      'Make an Offer / Counter-Offer',
+                      style: TextStyle(
+                        color: colors.isDark ? Colors.black : Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    offer.sellerName,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: colors.textPrimary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const Icon(Icons.star_rounded, size: 15, color: Color(0xFFF59E0B)),
-                const SizedBox(width: 2),
-                Text(
-                  '${offer.sellerRating}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: colors.textPrimary,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${offer.sellerTrades} trades',
-                  style: TextStyle(fontSize: 11, color: colors.textMuted),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-
-            // Action Button
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: ElevatedButton.icon(
-                onPressed: onMakeOffer,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colors.gold,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 1,
-                ),
-                icon: Icon(
-                  Icons.handshake_rounded,
-                  size: 18,
-                  color: colors.isDark ? Colors.black : Colors.white,
-                ),
-                label: Text(
-                  'Make an Offer / Counter-Offer',
-                  style: TextStyle(
-                    color: colors.isDark ? Colors.black : Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

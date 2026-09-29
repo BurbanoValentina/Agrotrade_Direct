@@ -7,7 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../widgets/theme_toggle_button.dart';
 import '../home/home_shell.dart';
 
-/// REQ-02 / REQ-03: registro independiente para exportador e importador.
+/// REQ-02 / REQ-03: Registro independiente para exportador e importador.
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -16,18 +16,25 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  // Clave global para validar el formulario de registro
   final _formKey = GlobalKey<FormState>();
+
+  // Controladores de campos de texto
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
   final _countryCtrl = TextEditingController();
 
+  // Rol predeterminado seleccionado al abrir la pantalla
   UserRole _role = UserRole.exportador;
+
+  // Estado local para ocultar o mostrar la contraseña
   bool _obscurePassword = true;
 
   @override
   void dispose() {
+    // Liberación de recursos de memoria de los controladores
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
@@ -36,28 +43,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  /// Ejecuta el proceso de registro
   Future<void> _submit() async {
+    // Valida todos los campos del formulario
     if (!_formKey.currentState!.validate()) return;
+
     final auth = context.read<AuthProvider>();
+
+    // Llama al método de registro pasando los datos según el rol seleccionado
     final ok = await auth.register(
       name: _nameCtrl.text.trim(),
       email: _emailCtrl.text.trim(),
       password: _passwordCtrl.text,
       role: _role,
-      companyName: _companyCtrl.text.trim().isEmpty
-          ? null
-          : _companyCtrl.text.trim(),
-      country: _countryCtrl.text.trim().isEmpty ? null : _countryCtrl.text.trim(),
+      companyName:
+          _companyCtrl.text.trim().isEmpty ? null : _companyCtrl.text.trim(),
+      country:
+          _countryCtrl.text.trim().isEmpty ? null : _countryCtrl.text.trim(),
     );
+
+    // Verificación de seguridad asíncrona antes de usar context
     if (!mounted) return;
+
     if (ok) {
+      // Limpia la pila de navegación y redirige al HomeShell
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const HomeShell()),
         (route) => false,
       );
     } else {
+      // Muestra mensaje de error en caso de fallo
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(auth.errorMessage ?? 'Error al registrarte')),
+        SnackBar(
+          content: Text(auth.errorMessage ?? 'Error al registrarte'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }
@@ -120,6 +140,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
+
+                      // Selector visual de Rol (Exportador Colombia / Importador UE)
                       Row(
                         children: [
                           Expanded(
@@ -144,6 +166,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ],
                       ),
                       const SizedBox(height: 28),
+
+                      // Campo: Nombre Completo
                       TextFormField(
                         controller: _nameCtrl,
                         style: TextStyle(color: colors.textPrimary, fontSize: 14),
@@ -153,22 +177,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           prefixIcon: Icon(Icons.person_outline_rounded, color: colors.textMuted, size: 20),
                         ),
                         validator: (v) =>
-                            (v == null || v.isEmpty) ? 'Requerido' : null,
+                            (v == null || v.trim().isEmpty) ? 'Requerido' : null,
                       ),
                       const SizedBox(height: 14),
+
+                      // Campo: Correo Electrónico
                       TextFormField(
                         controller: _emailCtrl,
                         keyboardType: TextInputType.emailAddress,
+                        autocorrect: false,
                         style: TextStyle(color: colors.textPrimary, fontSize: 14),
                         decoration: InputDecoration(
                           labelText: 'Correo electrónico',
                           hintText: 'correo@ejemplo.com',
                           prefixIcon: Icon(Icons.mail_outline_rounded, color: colors.textMuted, size: 20),
                         ),
-                        validator: (v) =>
-                            (v == null || !v.contains('@')) ? 'Correo inválido' : null,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Ingresa tu correo';
+                          }
+                          if (!v.contains('@') || !v.contains('.')) {
+                            return 'Correo electrónico inválido';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 14),
+
+                      // Campo: Contraseña
                       TextFormField(
                         controller: _passwordCtrl,
                         obscureText: _obscurePassword,
@@ -191,6 +227,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             : null,
                       ),
                       const SizedBox(height: 14),
+
+                      // Campo dinámico: Nombre de Finca o Empresa
                       TextFormField(
                         controller: _companyCtrl,
                         style: TextStyle(color: colors.textPrimary, fontSize: 14),
@@ -205,6 +243,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                       const SizedBox(height: 14),
+
+                      // Campo dinámico: Región o País de origen
                       TextFormField(
                         controller: _countryCtrl,
                         style: TextStyle(color: colors.textPrimary, fontSize: 14),
@@ -215,6 +255,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                       const SizedBox(height: 28),
+
+                      // Botón principal de registro
                       ElevatedButton(
                         onPressed: auth.isLoading ? null : _submit,
                         child: auth.isLoading
@@ -243,6 +285,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                       ),
                       const SizedBox(height: 18),
+
+                      // Volver al login
                       Center(
                         child: TextButton(
                           onPressed: () => Navigator.of(context).pop(),
@@ -268,6 +312,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
+/// Widget privado para renderizar cada tarjeta de selección de rol
 class _RoleCard extends StatelessWidget {
   const _RoleCard({
     required this.title,
