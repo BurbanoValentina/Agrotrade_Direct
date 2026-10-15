@@ -11,6 +11,7 @@ class AdminEmployee {
   final String password;
   final List<AdminPermission> permissions;
   final bool isSuperAdmin;
+  final bool isManager;
   final bool isActive;
   final DateTime createdAt;
   final String createdBy;
@@ -22,14 +23,23 @@ class AdminEmployee {
     required this.password,
     required this.permissions,
     this.isSuperAdmin = false,
+    this.isManager = false,
     this.isActive = true,
     required this.createdAt,
     required this.createdBy,
   });
 
+  /// Rol Gerente: solo consulta (Dashboard, Reportes), sin permisos de mutación.
   /// Un Super Admin tiene todos los permisos sin importar su lista.
   bool hasPermission(AdminPermission permission) {
     if (isSuperAdmin) return true;
+    if (isManager) {
+      // El gerente solo puede consultar Dashboard, Reportes y monitoreo de seguridad en lectura
+      return permission == AdminPermission.dashboard ||
+          permission == AdminPermission.reports ||
+          permission == AdminPermission.security ||
+          permission == AdminPermission.negotiationManagement;
+    }
     return permissions.contains(permission);
   }
 
@@ -40,6 +50,7 @@ class AdminEmployee {
     String? password,
     List<AdminPermission>? permissions,
     bool? isSuperAdmin,
+    bool? isManager,
     bool? isActive,
     DateTime? createdAt,
     String? createdBy,
@@ -51,6 +62,7 @@ class AdminEmployee {
       password: password ?? this.password,
       permissions: permissions ?? this.permissions,
       isSuperAdmin: isSuperAdmin ?? this.isSuperAdmin,
+      isManager: isManager ?? this.isManager,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       createdBy: createdBy ?? this.createdBy,

@@ -71,92 +71,134 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         actions: const [
           ThemeToggleButton(compact: true),
           SizedBox(width: 12),
         ],
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
+      body: Stack(
+        children: [
+          // Ambient luxury background shapes
+          Positioned(
+            top: -100,
+            right: -80,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+              width: 320,
+              height: 320,
               decoration: BoxDecoration(
-                color: colors.surface,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: colors.border.withValues(alpha: 0.8)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: colors.isDark ? 0.3 : 0.04),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    colors.gold.withValues(alpha: colors.isDark ? 0.2 : 0.08),
+                    Colors.transparent,
+                  ],
+                ),
               ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [colors.gold, colors.goldDark],
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: colors.gold.withValues(alpha: 0.35),
-                              blurRadius: 20,
-                              offset: const Offset(0, 6),
+            ),
+          ),
+          Positioned(
+            bottom: -100,
+            left: -80,
+            child: Container(
+              width: 360,
+              height: 360,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    Colors.purpleAccent.withValues(alpha: colors.isDark ? 0.12 : 0.05),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 34),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: colors.border.withValues(alpha: 0.9)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: colors.isDark ? 0.35 : 0.06),
+                        blurRadius: 30,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 68,
+                            height: 68,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [colors.gold, colors.goldDark],
+                              ),
+                              borderRadius: BorderRadius.circular(22),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colors.gold.withValues(alpha: 0.4),
+                                  blurRadius: 22,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
                             ),
-                          ],
+                            child: Icon(
+                              Icons.admin_panel_settings_rounded,
+                              size: 38,
+                              color: colors.isDark ? Colors.black : Colors.white,
+                            ),
+                          ),
                         ),
-                        child: Icon(
-                          Icons.admin_panel_settings_rounded,
-                          size: 36,
-                          color: colors.isDark ? Colors.black : Colors.white,
+                        const SizedBox(height: 18),
+                        Text(
+                          'Panel de Control Interno',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 23,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.4,
+                            color: colors.textPrimary,
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'AgroTrade Direct · Panel Interno',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.4,
-                        color: colors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Acceso exclusivo para empleados',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: colors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    TextFormField(
-                      controller: _emailController,
-                      style: TextStyle(color: colors.textPrimary, fontSize: 14),
-                      decoration: InputDecoration(
-                        labelText: 'Correo Electrónico',
-                        hintText: 'correo@agrotrade.co',
-                        prefixIcon: Icon(Icons.mail_outline_rounded, color: colors.textMuted, size: 20),
-                      ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Portal de Auditoría, Operaciones y Gerencia',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        TextFormField(
+                          controller: _emailController,
+                          style: TextStyle(color: colors.textPrimary, fontSize: 14),
+                          decoration: InputDecoration(
+                            labelText: 'Correo Institucional',
+                            hintText: 'ejemplo@agrotrade.co',
+                            prefixIcon: Icon(Icons.mail_outline_rounded, color: colors.gold, size: 20),
+                          ),
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) =>
                           value == null || value.isEmpty ? 'Requerido' : null,
@@ -290,6 +332,19 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         'Plt\$7nR4wQ',
                       ),
                     ),
+                    const SizedBox(height: 10),
+                    _QuickLoginButton(
+                      name: 'Marcela Torres',
+                      role: 'Gerente (Solo Consulta, sin acciones)',
+                      email: 'marcela.torres@agrotrade.co',
+                      badge: '📊 Consulta',
+                      color: Colors.purpleAccent,
+                      icon: Icons.analytics_outlined,
+                      onTap: () => _quickLogin(
+                        'marcela.torres@agrotrade.co',
+                        'Gerente123*',
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -297,8 +352,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           ),
         ),
       ),
-    );
-  }
+    ],
+  ),
+);
+}
 }
 
 class _QuickLoginButton extends StatelessWidget {

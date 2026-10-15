@@ -110,20 +110,18 @@ void validatePurchaseRequestInput({
   }
 }
 
-/// Implementación en memoria con datos de ejemplo y caché local para modo offline (REQ-27).
-class MockOfferRepository implements OfferRepository {
-  MockOfferRepository([LocalStorageService? storageService])
-      : _storageService = storageService ?? LocalStorageService();
-
-  final LocalStorageService _storageService;
 /// Implementación en memoria con datos de ejemplo para pruebas offline.
 ///
 /// Replica las reglas de la BD (migraciones 20260925040000_purchase_request_rules
 /// y 20260926000000_negotiation_flow). Como no hay login real, las acciones se
 /// hacen en nombre de [currentUserId]: por defecto el importador demo; en las
 /// pruebas se cambia a [demoSellerId] para actuar como exportador.
+/// REQ-27: Incluye caché local para modo offline.
 class MockOfferRepository implements OfferRepository {
-  MockOfferRepository({this.currentUserId = demoBuyerId});
+  MockOfferRepository({this.currentUserId = demoBuyerId, LocalStorageService? storageService})
+      : _storageService = storageService ?? LocalStorageService();
+
+  final LocalStorageService _storageService;
 
   static const demoBuyerId = 'demo-buyer';
   static const demoSellerId = 'demo-seller';
@@ -218,23 +216,19 @@ class MockOfferRepository implements OfferRepository {
   Future<List<CropOffer>> fetchOffers() async {
     await Future.delayed(const Duration(milliseconds: 400));
     try {
-      // 1. Obtenemos las ofertas iniciales o mock
-      final offers = List<CropOffer>.from(mockOffers);
-
-      // 2. REQ-27: Guardamos automáticamente una copia en la memoria del teléfono
-      await _storageService.cacheOffers(offers);
-
-      return offers;
+      // REQ-27: Guardamos automáticamente una copia en la memoria del teléfono
+      await _storageService.cacheOffers(_offers);
+      return List<CropOffer>.from(_offers);
     } catch (e) {
-      // 3. REQ-27: Si falla la red/fuente, devolvemos lo que esté guardado en caché
+      // REQ-27: Si falla, devolvemos lo que esté guardado en caché
       final cached = await _storageService.getCachedOffers();
       if (cached.isNotEmpty) {
         return cached;
       }
-      rethrow;
+      return List<CropOffer>.from(_offers);
     }
-    return List<CropOffer>.from(_offers);
   }
+
 
   @override
   Future<void> sendCounterOffer({
@@ -244,7 +238,6 @@ class MockOfferRepository implements OfferRepository {
     String? notes,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
-    return true;
     validatePurchaseRequestInput(
       proposedPricePerMt: proposedPricePerMt,
       volumeMt: volumeMt,

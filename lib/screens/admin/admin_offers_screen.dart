@@ -45,85 +45,308 @@ class _AdminOffersScreenState extends State<AdminOffersScreen> {
       return matchesSearch && matchesFilter;
     }).toList();
 
-    return ResponsiveContainer(
-      maxWidth: 1000,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      child: Column(
-        children: [
-          // Search & Filter Header
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchCtrl,
-                  onChanged: (value) => setState(() => _searchQuery = value),
-                  style: TextStyle(color: colors.textPrimary, fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'Buscar por variedad, origen o vendedor...',
-                    prefixIcon: Icon(Icons.search_rounded, color: colors.textMuted, size: 20),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(Icons.close_rounded, color: colors.textMuted, size: 18),
-                            onPressed: () {
-                              _searchCtrl.clear();
-                              setState(() => _searchQuery = '');
-                            },
-                          )
-                        : null,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 980;
+
+        if (!isWide) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Column(
+              children: [
+                _buildSearchInput(colors),
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('Todas', 'Todas', colors),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Café', '☕ Café', colors),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Cacao', '🍫 Cacao', colors),
+                    ],
                   ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: filteredOffers.isEmpty
+                      ? _buildEmptyState(colors)
+                      : _buildOffersList(filteredOffers, colors, currencyFormat, admin),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Split-Layout Panorámico de pantalla completa en Desktop
+        final cafeCount = admin.offers.where((o) => o.cropType == CropType.cafe).length;
+        final cacaoCount = admin.offers.where((o) => o.cropType == CropType.cacao).length;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 20.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Panel Izquierdo (360px): Filtros, Búsqueda y Distribución de Lotes
+              SizedBox(
+                width: 360,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSearchInput(colors),
+                      const SizedBox(height: 18),
+                      Text(
+                        'FILTRAR POR COMMODITY',
+                        style: TextStyle(
+                          color: colors.textMuted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _buildCommoditySelector(colors, admin.offers.length, cafeCount, cacaoCount),
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: colors.surface,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: colors.border),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.bar_chart_rounded, size: 18, color: colors.gold),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Catálogo Vigente',
+                                  style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w800, fontSize: 13),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('☕ Café Arábica', style: TextStyle(color: colors.textMuted, fontSize: 11)),
+                                      const SizedBox(height: 2),
+                                      Text('$cafeCount lotes', style: TextStyle(color: colors.gold, fontWeight: FontWeight.w800, fontSize: 16)),
+                                    ],
+                                  ),
+                                ),
+                                Container(width: 1, height: 30, color: colors.border),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('🍫 Cacao Fino', style: TextStyle(color: colors.textMuted, fontSize: 11)),
+                                      const SizedBox(height: 2),
+                                      Text('$cacaoCount lotes', style: const TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.w800, fontSize: 16)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 26),
+
+              // Panel Derecho: Lista Panorámica de Ofertas
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: colors.border),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.storefront_rounded, size: 20, color: colors.gold),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Lotes Publicados para Exportación',
+                                style: TextStyle(
+                                  color: colors.textPrimary,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: colors.surfaceAlt,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: colors.border),
+                            ),
+                            child: Text(
+                              '${filteredOffers.length} ofertas disponibles',
+                              style: TextStyle(
+                                color: colors.gold,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: filteredOffers.isEmpty
+                          ? _buildEmptyState(colors)
+                          : _buildOffersList(filteredOffers, colors, currencyFormat, admin),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+        );
+      },
+    );
+  }
 
-          // Filters Row
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildFilterChip('Todas', 'Todas', colors),
-                const SizedBox(width: 8),
-                _buildFilterChip('Café', '☕ Café', colors),
-                const SizedBox(width: 8),
-                _buildFilterChip('Cacao', '🍫 Cacao', colors),
-              ],
+  Widget _buildSearchInput(dynamic colors) {
+    return TextField(
+      controller: _searchCtrl,
+      onChanged: (value) => setState(() => _searchQuery = value),
+      style: TextStyle(color: colors.textPrimary, fontSize: 14),
+      decoration: InputDecoration(
+        hintText: 'Buscar por variedad, origen o vendedor...',
+        prefixIcon: Icon(Icons.search_rounded, color: colors.textMuted, size: 20),
+        suffixIcon: _searchQuery.isNotEmpty
+            ? IconButton(
+                icon: Icon(Icons.close_rounded, color: colors.textMuted, size: 18),
+                onPressed: () {
+                  _searchCtrl.clear();
+                  setState(() => _searchQuery = '');
+                },
+              )
+            : null,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
+  }
+
+  Widget _buildCommoditySelector(dynamic colors, int total, int cafe, int cacao) {
+    final commodities = [
+      ('Todas', 'Todas las Ofertas', Icons.inventory_2_outlined, total),
+      ('Café', '☕ Café Especial', Icons.coffee_rounded, cafe),
+      ('Cacao', '🍫 Cacao Fino de Aroma', Icons.eco_rounded, cacao),
+    ];
+
+    return Column(
+      children: commodities.map((c) {
+        final isSelected = _selectedFilter == c.$1;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: InkWell(
+            onTap: () => setState(() => _selectedFilter = c.$1),
+            borderRadius: BorderRadius.circular(14),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: isSelected ? colors.gold.withValues(alpha: 0.15) : colors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isSelected ? colors.gold : colors.border,
+                  width: isSelected ? 1.5 : 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(c.$3, size: 18, color: isSelected ? colors.gold : colors.textSecondary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      c.$2,
+                      style: TextStyle(
+                        color: isSelected ? colors.gold : colors.textPrimary,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isSelected ? colors.gold : colors.surfaceAlt,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${c.$4}',
+                      style: TextStyle(
+                        color: isSelected ? (colors.isDark ? Colors.black : Colors.white) : colors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 16),
+        );
+      }).toList(),
+    );
+  }
 
-          // Offers List
-          Expanded(
-            child: filteredOffers.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.inventory_2_outlined, size: 48, color: colors.textMuted),
-                        const SizedBox(height: 14),
-                        Text(
-                          'No se encontraron ofertas',
-                          style: TextStyle(
-                            color: colors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Prueba cambiando los filtros o la búsqueda.',
-                          style: TextStyle(color: colors.textSecondary, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.separated(
-                    itemCount: filteredOffers.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final offer = filteredOffers[index];
-                      final isCoffee = offer.cropType == CropType.cafe;
+  Widget _buildEmptyState(dynamic colors) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.inventory_2_outlined, size: 48, color: colors.textMuted),
+          const SizedBox(height: 14),
+          Text(
+            'No se encontraron ofertas',
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Prueba cambiando los filtros o la búsqueda.',
+            style: TextStyle(color: colors.textSecondary, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOffersList(List<CropOffer> offers, dynamic colors, NumberFormat currencyFormat, AdminProvider admin) {
+    return ListView.separated(
+      itemCount: offers.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final offer = offers[index];
+        final isCoffee = offer.cropType == CropType.cafe;
 
                       return Container(
                         decoration: BoxDecoration(
@@ -322,11 +545,7 @@ class _AdminOffersScreenState extends State<AdminOffersScreen> {
                         ),
                       );
                     },
-                  ),
-          ),
-        ],
-      ),
-    );
+                  );
   }
 
   Widget _buildFilterChip(String key, String label, AppThemeColors colors) {

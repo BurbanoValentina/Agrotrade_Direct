@@ -6,6 +6,7 @@ import '../../models/user_role.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/responsive_layout.dart';
 import '../../widgets/theme_toggle_button.dart';
+import '../../widgets/user_report_dialog.dart';
 import '../map/trade_map_screen.dart';
 import '../market/market_screen.dart';
 
@@ -154,8 +155,9 @@ class _ProfileScreen extends StatelessWidget {
                     user?.name ?? 'Usuario AgroTrade',
                     style: TextStyle(
                       color: colors.textPrimary,
-                      fontSize: 20,
+                      fontSize: 22,
                       fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -164,56 +166,147 @@ class _ProfileScreen extends StatelessWidget {
                     style: TextStyle(color: colors.textSecondary, fontSize: 13),
                   ),
                   const SizedBox(height: 14),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isExporter
-                          ? colors.gold.withValues(alpha: 0.12)
-                          : const Color(0xFF3B82F6).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
+                  InkWell(
+                    onTap: () {
+                      final newRole = isExporter ? UserRole.importador : UserRole.exportador;
+                      context.read<AuthProvider>().setRole(newRole);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            newRole == UserRole.exportador
+                                ? 'Cambiado a vista Exportador 🇨🇴'
+                                : 'Cambiado a vista Importador 🇪🇺',
+                          ),
+                          duration: const Duration(seconds: 2),
+                          backgroundColor: newRole == UserRole.exportador ? colors.gold : const Color(0xFF3B82F6),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
                         color: isExporter
-                            ? colors.gold.withValues(alpha: 0.4)
-                            : const Color(0xFF3B82F6).withValues(alpha: 0.4),
+                            ? colors.gold.withValues(alpha: 0.12)
+                            : const Color(0xFF3B82F6).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isExporter
+                              ? colors.gold.withValues(alpha: 0.4)
+                              : const Color(0xFF3B82F6).withValues(alpha: 0.4),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      isExporter
-                          ? 'Exportador Certificado 🇨🇴'
-                          : 'Importador Oficial UE 🇪🇺',
-                      style: TextStyle(
-                        color:
-                            isExporter ? colors.gold : const Color(0xFF3B82F6),
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            isExporter
+                                ? 'Exportador Certificado 🇨🇴'
+                                : 'Importador Oficial UE 🇪🇺',
+                            style: TextStyle(
+                              color:
+                                  isExporter ? colors.gold : const Color(0xFF3B82F6),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.swap_horiz_rounded,
+                            size: 16,
+                            color: isExporter ? colors.gold : const Color(0xFF3B82F6),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                   if (user?.companyName != null &&
                       user.companyName.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.business_rounded,
-                            size: 16, color: colors.textMuted),
-                        const SizedBox(width: 6),
-                        Text(
-                          user.companyName,
-                          style: TextStyle(
-                            color: colors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceAlt,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: colors.border),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.business_rounded,
+                              size: 15, color: colors.gold),
+                          const SizedBox(width: 6),
+                          Text(
+                            user.companyName,
+                            style: TextStyle(
+                              color: colors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
+                  const SizedBox(height: 20),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                  // Métricas del usuario
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _UserStatMini(
+                        label: 'Tratos',
+                        value: '14',
+                        icon: Icons.handshake_rounded,
+                        color: colors.gold,
+                      ),
+                      Container(width: 1, height: 32, color: colors.border),
+                      _UserStatMini(
+                        label: 'Calificación',
+                        value: '4.9 ★',
+                        icon: Icons.star_rounded,
+                        color: const Color(0xFFF59E0B),
+                      ),
+                      Container(width: 1, height: 32, color: colors.border),
+                      _UserStatMini(
+                        label: 'Volumen',
+                        value: '320 MT',
+                        icon: Icons.scale_rounded,
+                        color: const Color(0xFF10B981),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+
+            // User Report Form Button
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: () => UserReportDialog.show(context),
+                icon: const Icon(Icons.flag_outlined, color: Colors.redAccent, size: 18),
+                label: const Text(
+                  'Reportar Irregularidad',
+                  style: TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.3)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
 
             // Logout Button
             SizedBox(
@@ -351,6 +444,53 @@ class _PlaceholderScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _UserStatMini extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _UserStatMini({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(
+              value,
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            color: colors.textMuted,
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

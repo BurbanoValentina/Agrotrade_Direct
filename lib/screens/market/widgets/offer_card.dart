@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../models/crop_offer.dart';
+import '../../../models/user_role.dart';
+import '../../../providers/auth_provider.dart';
 import 'offer_detail_sheet.dart';
 
 final _currencyFmt =
@@ -258,32 +261,73 @@ class OfferCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
 
-                // Action Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: ElevatedButton.icon(
-                    onPressed: onMakeOffer,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colors.gold,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      elevation: 1,
-                    ),
-                    icon: Icon(
-                      Icons.handshake_rounded,
-                      size: 18,
-                      color: colors.isDark ? Colors.black : Colors.white,
-                    ),
-                    label: Text(
-                      'Make an Offer / Counter-Offer',
-                      style: TextStyle(
-                        color: colors.isDark ? Colors.black : Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
+                // Action Button contextual según el rol
+                Builder(
+                  builder: (context) {
+                    final currentUser = context.watch<AuthProvider>().currentUser;
+                    final isExporter = currentUser?.role == UserRole.exportador;
+
+                    if (isExporter) {
+                      return SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: () => showOfferDetailSheet(
+                            context,
+                            offer: offer,
+                            onMakeOffer: onMakeOffer,
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: colors.gold.withValues(alpha: 0.6)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          icon: Icon(
+                            Icons.edit_note_rounded,
+                            size: 20,
+                            color: colors.gold,
+                          ),
+                          label: Text(
+                            'Gestionar mi Oferta / Ver Detalles',
+                            style: TextStyle(
+                              color: colors.gold,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    return SizedBox(
+                      width: double.infinity,
+                      height: 44,
+                      child: ElevatedButton.icon(
+                        onPressed: onMakeOffer,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colors.gold,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                        icon: Icon(
+                          Icons.handshake_rounded,
+                          size: 18,
+                          color: colors.isDark ? Colors.black : Colors.white,
+                        ),
+                        label: Text(
+                          'Enviar Oferta de Compra / Trato Directo',
+                          style: TextStyle(
+                            color: colors.isDark ? Colors.black : Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ],
             ),

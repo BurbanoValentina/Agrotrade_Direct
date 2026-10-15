@@ -69,5 +69,3 @@ Future<void> main() async {
     ),
   );
 }
-}
-
