@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../models/crop_offer.dart';
+import '../../../widgets/user_report_dialog.dart';
 
 final _currencyFmt =
     NumberFormat.currency(locale: 'en_US', symbol: '\$', decimalDigits: 0);
@@ -172,6 +173,30 @@ class _OfferDetailContent extends StatelessWidget {
                   onMakeOffer();
                 },
                 child: const Text('Iniciar Negociación / Contraofertar'),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // REQ-22: Botón para reportar irregularidad
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.redAccent,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  UserReportDialog.show(
+                    context,
+                    reportedUserId: offer.sellerId,
+                    reportedUserName: offer.sellerName,
+                    offerId: offer.id,
+                    offerTitle: '${offer.variety} (${offer.originCountry})',
+                  );
+                },
+                icon: const Icon(Icons.flag_outlined, size: 16),
+                label: const Text('Reportar irregularidad en esta oferta'),
               ),
             ),
           ],

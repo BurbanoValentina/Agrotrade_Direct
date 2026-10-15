@@ -94,6 +94,80 @@ class AdminOperationsScreen extends StatelessWidget {
       length: tabs.length,
       child: Column(
         children: [
+          // Banner de Operaciones de Mercado
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              border: Border(bottom: BorderSide(color: colors.border)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: colors.gold.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: colors.gold.withValues(alpha: 0.35)),
+                      ),
+                      child: Icon(Icons.storefront_rounded, color: colors.gold, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Mesa de Operaciones & Tratos Directos',
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                        Text(
+                          'Supervisión de catálogo de café/cacao, contraofertas en vivo y reportes generados',
+                          style: TextStyle(color: colors.textSecondary, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceAlt,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: colors.border),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF10B981),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Mercado Conectado',
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
@@ -102,24 +176,24 @@ class AdminOperationsScreen extends StatelessWidget {
             ),
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
+                constraints: const BoxConstraints(maxWidth: 550),
                 child: Container(
                   height: 44,
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: colors.surfaceAlt,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: colors.border),
                   ),
                   child: TabBar(
                     indicator: BoxDecoration(
                       color: colors.surface,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: colors.gold.withValues(alpha: 0.5)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: colors.isDark ? 0.2 : 0.05),
-                          blurRadius: 4,
+                          color: Colors.black.withValues(alpha: colors.isDark ? 0.25 : 0.05),
+                          blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
                       ],
@@ -127,7 +201,7 @@ class AdminOperationsScreen extends StatelessWidget {
                     indicatorSize: TabBarIndicatorSize.tab,
                     labelColor: colors.gold,
                     unselectedLabelColor: colors.textSecondary,
-                    labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                     unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     tabs: tabs,
                   ),
