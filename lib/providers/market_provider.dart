@@ -113,10 +113,15 @@ class MarketProvider extends ChangeNotifier {
   /// Carga la lista inicial de ofertas desde el repositorio
   Future<void> loadOffers() async {
     _setLoading(true);
+    _loadError = null;
     try {
       _offers = await _repository.fetchOffers();
       _errorMessage = null;
+    } on RepositoryException catch (e) {
+      _loadError = e.message;
+      _errorMessage = e.message;
     } catch (e) {
+      _loadError = 'No pudimos cargar las ofertas del mercado.';
       _errorMessage = 'No pudimos cargar las ofertas del mercado.';
     } finally {
       _setLoading(false);
@@ -134,42 +139,6 @@ class MarketProvider extends ChangeNotifier {
     }
   }
 
-  /// REQ-16: Envía una contraoferta de precio
-  Future<bool> sendCounterOffer(String offerId, double newPrice) async {
-    try {
-      final success = await _repository.sendCounterOffer(
-        offerId: offerId,
-        proposedPricePerMt: newPrice,
-      );
-      if (success) {
-        final index = _offers.indexWhere((o) => o.id == offerId);
-        if (index != -1) {
-          final old = _offers[index];
-          _offers[index] = CropOffer(
-            id: old.id,
-            cropType: old.cropType,
-            variety: old.variety,
-            originRegion: old.originRegion,
-            originCountry: old.originCountry,
-            askPricePerMt: newPrice,
-            volumeMt: old.volumeMt,
-            destinationCountry: old.destinationCountry,
-            certifications: old.certifications,
-            sellerName: old.sellerName,
-            sellerRating: old.sellerRating,
-            sellerTrades: old.sellerTrades,
-            status: OfferStatus.negociando,
-            postedAt: old.postedAt,
-          );
-          notifyListeners();
-        }
-      }
-      return success;
-    } catch (e) {
-      return false;
-    }
-  }
-
   /// REQ-12: Actualiza la categoría del filtro rápido
   void setFilter(MarketFilter filter) {
     _filterOptions = _filterOptions.copyWith(category: filter);
@@ -180,17 +149,6 @@ class MarketProvider extends ChangeNotifier {
   void setAdvancedFilterOptions(MarketFilterOptions options) {
     _filterOptions = options;
     notifyListeners();
-    _isLoading = true;
-    _loadError = null;
-    notifyListeners();
-    try {
-      _allOffers = await _repository.fetchOffers();
-    } on RepositoryException catch (e) {
-      _loadError = e.message;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
   }
 
   /// REQ-12: Restablece todos los filtros a sus valores predeterminados
@@ -209,6 +167,8 @@ class MarketProvider extends ChangeNotifier {
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
+  }
+
   /// REQ-14: envía una solicitud de compra. Devuelve `true` si se envió; si no,
   /// el motivo queda en [lastError] para mostrarlo al usuario.
   Future<bool> sendCounterOffer(

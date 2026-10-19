@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/admin_role_extension.dart';
 import '../../providers/admin_provider.dart';
 import '../../widgets/responsive_layout.dart';
 
@@ -80,8 +81,9 @@ class AdminReportsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 28),
 
-            // Top Exporters Section
-            Row(
+            if (!context.isManager) ...[
+              // Top Exporters Section
+              Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(6),
@@ -129,7 +131,8 @@ class AdminReportsScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            _buildUserTable(context, importadores, isExporter: false),
+              _buildUserTable(context, importadores, isExporter: false),
+            ],
             const SizedBox(height: 32),
 
             // Export Button

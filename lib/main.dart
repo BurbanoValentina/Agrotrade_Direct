@@ -24,9 +24,9 @@ Future<void> main() async {
 
   // Inicializar cliente de Supabase
   await Supabase.initialize(
-    url: SupabaseConstants.supabaseUrl,
+    url: SupabaseConstants.url,
     // ignore: deprecated_member_use
-    anonKey: SupabaseConstants.supabaseAnonKey,
+    anonKey: SupabaseConstants.anonKey,
   );
 
   // Restaurar la sesión guardada antes de mostrar la app: si el usuario ya
@@ -40,8 +40,10 @@ Future<void> main() async {
         // Repositorios reales de Supabase (PostgreSQL, Auth y RLS)
         Provider<AuthRepository>.value(value: authRepository),
         Provider<OfferRepository>(create: (_) => SupabaseOfferRepository()),
-        Provider<CertificationRepository>(create: (_) => SupabaseCertificationRepository()),
-        Provider<ModerationRepository>(create: (_) => SupabaseModerationRepository()),
+        Provider<CertificationRepository>(
+            create: (_) => SupabaseCertificationRepository()),
+        Provider<ModerationRepository>(
+            create: (_) => SupabaseModerationRepository()),
         // Admin aún sin backend: sigue en mock hasta tener tablas en Supabase.
         Provider<AdminRepository>(create: (_) => MockAdminRepository()),
 
@@ -51,8 +53,8 @@ Future<void> main() async {
           create: (_) => ThemeProvider(),
         ),
         ChangeNotifierProvider(
-          create: (ctx) =>
-              AuthProvider(ctx.read<AuthRepository>(), initialUser: initialUser),
+          create: (ctx) => AuthProvider(ctx.read<AuthRepository>(),
+              initialUser: initialUser),
         ),
         ChangeNotifierProvider(
           create: (ctx) => MarketProvider(ctx.read<OfferRepository>()),
@@ -69,5 +71,3 @@ Future<void> main() async {
     ),
   );
 }
-}
-

@@ -7,7 +7,6 @@ import '../../providers/admin_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/theme_toggle_button.dart';
 import '../admin/admin_login_screen.dart';
-import '../admin/admin_shell.dart';
 import '../home/home_shell.dart';
 import 'register_screen.dart';
 
@@ -78,9 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     if (isEmployee) {
       _passwordCtrl.clear();
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const AdminShell()),
-      );
+      Navigator.of(context).pushReplacementNamed('/admin');
       return;
     }
 

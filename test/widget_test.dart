@@ -7,6 +7,7 @@ import 'package:agrotrade_direct/data/repositories/auth_repository.dart';
 import 'package:agrotrade_direct/data/repositories/offer_repository.dart';
 import 'package:agrotrade_direct/providers/admin_provider.dart';
 import 'package:agrotrade_direct/providers/auth_provider.dart';
+import 'package:agrotrade_direct/providers/locale_provider.dart';
 import 'package:agrotrade_direct/providers/market_provider.dart';
 import 'package:agrotrade_direct/providers/theme_provider.dart';
 import 'package:agrotrade_direct/widgets/theme_toggle_button.dart';
@@ -22,6 +23,7 @@ void main() {
           Provider<OfferRepository>(create: (_) => MockOfferRepository()),
           Provider<AdminRepository>(create: (_) => MockAdminRepository()),
           ChangeNotifierProvider<ThemeProvider>.value(value: themeProvider),
+          ChangeNotifierProvider(create: (_) => LocaleProvider()),
           ChangeNotifierProvider(
             create: (ctx) => AuthProvider(ctx.read<AuthRepository>()),
           ),
@@ -35,6 +37,7 @@ void main() {
         child: const AgroTradeApp(),
       ),
     );
+    await tester.pumpAndSettle();
 
     // Initial state is Dark Mode
     expect(themeProvider.isDarkMode, isTrue);

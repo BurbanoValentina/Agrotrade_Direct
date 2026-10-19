@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/auth/admin_role_guard.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/admin_permission.dart';
 import '../../providers/admin_provider.dart';
+import '../../core/utils/admin_role_extension.dart';
 import '../../widgets/theme_toggle_button.dart';
 import '../auth/login_screen.dart';
 import 'admin_dashboard_screen.dart';
@@ -51,40 +53,62 @@ class _AdminShellState extends State<AdminShell> {
       );
     }
 
-    final isSuper = provider.isSuperAdmin;
+    final isSuper = context.isSuperAdmin;
+    final isManager = context.isManager;
 
     // Construir pestañas dinámicas según los permisos asignados
     final tabs = <_AdminTabItem>[];
 
     // 1. Dashboard
-    if (isSuper || provider.hasPermission(AdminPermission.dashboard)) {
+    if (isSuper ||
+        isManager ||
+        provider.hasPermission(AdminPermission.dashboard)) {
       tabs.add(
         const _AdminTabItem(
           label: 'Dashboard',
           icon: Icons.dashboard_rounded,
-          screen: AdminDashboardScreen(),
+          screen: AdminRoleGuard(
+            allowedRoles: [
+              AdminRole.superAdmin,
+              AdminRole.manager,
+              AdminRole.employee,
+            ],
+            requiredPermissions: [AdminPermission.dashboard],
+            child: AdminDashboardScreen(),
+          ),
         ),
       );
     }
 
     // 2. Usuarios
-    if (isSuper || provider.hasPermission(AdminPermission.userManagement)) {
+    if (isSuper ||
+        (!isManager &&
+            provider.hasPermission(AdminPermission.userManagement))) {
       tabs.add(
         const _AdminTabItem(
           label: 'Usuarios',
           icon: Icons.people_alt_rounded,
-          screen: AdminUsersScreen(),
+          screen: AdminRoleGuard(
+            allowedRoles: [AdminRole.superAdmin, AdminRole.employee],
+            requiredPermissions: [AdminPermission.userManagement],
+            child: AdminUsersScreen(),
+          ),
         ),
       );
     }
 
     // 3. Seguridad
-    if (isSuper || provider.hasPermission(AdminPermission.security)) {
+    if (isSuper ||
+        (!isManager && provider.hasPermission(AdminPermission.security))) {
       tabs.add(
         _AdminTabItem(
           label: 'Seguridad',
           icon: Icons.shield_rounded,
-          screen: const AdminSecurityScreen(),
+          screen: const AdminRoleGuard(
+            allowedRoles: [AdminRole.superAdmin, AdminRole.employee],
+            requiredPermissions: [AdminPermission.security],
+            child: AdminSecurityScreen(),
+          ),
           badgeCount: provider.pendingAlertsCount,
         ),
       );
@@ -92,6 +116,7 @@ class _AdminShellState extends State<AdminShell> {
 
     // 4. Mercado (Ofertas, Negociaciones, Reportes)
     if (isSuper ||
+        isManager ||
         provider.hasPermission(AdminPermission.offerManagement) ||
         provider.hasPermission(AdminPermission.negotiationManagement) ||
         provider.hasPermission(AdminPermission.reports)) {
@@ -99,20 +124,35 @@ class _AdminShellState extends State<AdminShell> {
         const _AdminTabItem(
           label: 'Mercado',
           icon: Icons.storefront_rounded,
-          screen: AdminOperationsScreen(),
+          screen: AdminRoleGuard(
+            allowedRoles: [
+              AdminRole.superAdmin,
+              AdminRole.manager,
+              AdminRole.employee,
+            ],
+            child: AdminOperationsScreen(),
+          ),
         ),
       );
     }
 
     // 5. Ajustes (Gestión de Empleados con claves autogeneradas + Parámetros)
     if (isSuper ||
-        provider.hasPermission(AdminPermission.settings) ||
-        provider.hasPermission(AdminPermission.employeeManagement)) {
+        (!isManager &&
+            (provider.hasPermission(AdminPermission.settings) ||
+                provider.hasPermission(AdminPermission.employeeManagement)))) {
       tabs.add(
         const _AdminTabItem(
           label: 'Ajustes',
           icon: Icons.settings_rounded,
-          screen: AdminSettingsScreen(),
+          screen: AdminRoleGuard(
+            allowedRoles: [AdminRole.superAdmin, AdminRole.employee],
+            requiredPermissions: [
+              AdminPermission.settings,
+              AdminPermission.employeeManagement,
+            ],
+            child: AdminSettingsScreen(),
+          ),
         ),
       );
     }
@@ -122,7 +162,8 @@ class _AdminShellState extends State<AdminShell> {
         backgroundColor: colors.background,
         appBar: AppBar(
           backgroundColor: colors.surface,
-          title: Text('Acceso Restringido', style: TextStyle(color: colors.textPrimary)),
+          title: Text('Acceso Restringido',
+              style: TextStyle(color: colors.textPrimary)),
           actions: [
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.redAccent),
@@ -160,11 +201,14 @@ class _AdminShellState extends State<AdminShell> {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: employee.isSuperAdmin ? colors.gold : colors.surfaceAlt,
+              backgroundColor:
+                  employee.isSuperAdmin ? colors.gold : colors.surfaceAlt,
               child: Text(
                 employee.name.isNotEmpty ? employee.name[0].toUpperCase() : 'A',
                 style: TextStyle(
-                  color: employee.isSuperAdmin ? (colors.isDark ? Colors.black : Colors.white) : colors.textPrimary,
+                  color: employee.isSuperAdmin
+                      ? (colors.isDark ? Colors.black : Colors.white)
+                      : colors.textPrimary,
                   fontWeight: FontWeight.w800,
                   fontSize: 14,
                 ),
@@ -192,7 +236,8 @@ class _AdminShellState extends State<AdminShell> {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: employee.isSuperAdmin
                               ? colors.gold.withValues(alpha: 0.16)
@@ -212,13 +257,21 @@ class _AdminShellState extends State<AdminShell> {
                                   ? Icons.workspace_premium_rounded
                                   : Icons.shield_rounded,
                               size: 11,
-                              color: employee.isSuperAdmin ? colors.gold : colors.textSecondary,
+                              color: employee.isSuperAdmin
+                                  ? colors.gold
+                                  : colors.textSecondary,
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              employee.isSuperAdmin ? 'Super Admin' : 'Empleado',
+                              employee.isSuperAdmin
+                                  ? 'Super Admin'
+                                  : employee.isManager
+                                      ? 'Gerente'
+                                      : 'Empleado',
                               style: TextStyle(
-                                color: employee.isSuperAdmin ? colors.gold : colors.textPrimary,
+                                color: employee.isSuperAdmin
+                                    ? colors.gold
+                                    : colors.textPrimary,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -266,7 +319,8 @@ class _AdminShellState extends State<AdminShell> {
                 color: Colors.red.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 18),
+              child: const Icon(Icons.logout_rounded,
+                  color: Colors.redAccent, size: 18),
             ),
             onPressed: () {
               provider.logout();
@@ -287,7 +341,8 @@ class _AdminShellState extends State<AdminShell> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: colors.border.withValues(alpha: 0.6))),
+          border: Border(
+              top: BorderSide(color: colors.border.withValues(alpha: 0.6))),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
@@ -303,7 +358,8 @@ class _AdminShellState extends State<AdminShell> {
                 backgroundColor: Colors.redAccent,
                 label: Text(
                   tab.badgeCount.toString(),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 10),
                 ),
                 child: iconWidget,
               );

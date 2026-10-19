@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/admin_role_extension.dart';
 import '../../models/suspicious_activity.dart';
 import '../../providers/admin_provider.dart';
 
@@ -152,31 +153,33 @@ class AdminDashboardScreen extends StatelessWidget {
                 );
               },
             ),
-          const SizedBox(height: 36),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Alertas Recientes',
-                style: TextStyle(
-                  fontSize: 19,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.3,
-                  color: colors.textPrimary,
+          if (!context.isManager) ...[
+            const SizedBox(height: 36),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Alertas Recientes',
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                    color: colors.textPrimary,
+                  ),
                 ),
-              ),
-              Text(
-                'Prioridad de revisión',
-                style: TextStyle(
-                  color: colors.textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+                Text(
+                  'Prioridad de revisión',
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _RecentAlertsSection(alerts: provider.alerts),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _RecentAlertsSection(alerts: provider.alerts),
+          ],
         ],
       ),
     );

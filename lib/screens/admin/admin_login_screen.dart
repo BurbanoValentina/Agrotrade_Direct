@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/admin_provider.dart';
 import '../../widgets/theme_toggle_button.dart';
-import 'admin_shell.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -39,9 +38,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
       if (success) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const AdminShell()),
-        );
+        Navigator.of(context).pushReplacementNamed('/admin');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -89,7 +86,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 border: Border.all(color: colors.border.withValues(alpha: 0.8)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: colors.isDark ? 0.3 : 0.04),
+                    color: Colors.black
+                        .withValues(alpha: colors.isDark ? 0.3 : 0.04),
                     blurRadius: 24,
                     offset: const Offset(0, 8),
                   ),
@@ -155,7 +153,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       decoration: InputDecoration(
                         labelText: 'Correo Electrónico',
                         hintText: 'correo@agrotrade.co',
-                        prefixIcon: Icon(Icons.mail_outline_rounded, color: colors.textMuted, size: 20),
+                        prefixIcon: Icon(Icons.mail_outline_rounded,
+                            color: colors.textMuted, size: 20),
                       ),
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) =>
@@ -169,14 +168,18 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       decoration: InputDecoration(
                         labelText: 'Contraseña',
                         hintText: '••••••••',
-                        prefixIcon: Icon(Icons.lock_outline_rounded, color: colors.textMuted, size: 20),
+                        prefixIcon: Icon(Icons.lock_outline_rounded,
+                            color: colors.textMuted, size: 20),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
                             color: colors.textMuted,
                             size: 18,
                           ),
-                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
                         ),
                       ),
                       validator: (value) =>
@@ -190,21 +193,28 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                               height: 20,
                               width: 20,
                               child: CircularProgressIndicator(
-                                color: colors.isDark ? Colors.black : Colors.white,
+                                color:
+                                    colors.isDark ? Colors.black : Colors.white,
                                 strokeWidth: 2,
                               ),
                             )
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.verified_user_rounded, size: 18, color: colors.isDark ? Colors.black : Colors.white),
+                                Icon(Icons.verified_user_rounded,
+                                    size: 18,
+                                    color: colors.isDark
+                                        ? Colors.black
+                                        : Colors.white),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Acceder al Panel',
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
-                                    color: colors.isDark ? Colors.black : Colors.white,
+                                    color: colors.isDark
+                                        ? Colors.black
+                                        : Colors.white,
                                   ),
                                 ),
                               ],
@@ -214,7 +224,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     Center(
                       child: TextButton.icon(
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: Icon(Icons.arrow_back_rounded, size: 16, color: colors.gold),
+                        icon: Icon(Icons.arrow_back_rounded,
+                            size: 16, color: colors.gold),
                         label: Text(
                           'Volver al inicio',
                           style: TextStyle(
@@ -232,7 +243,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 10),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
                               color: colors.surfaceAlt,
                               borderRadius: BorderRadius.circular(8),
@@ -363,7 +375,8 @@ class _QuickLoginButton extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
@@ -400,7 +413,8 @@ class _QuickLoginButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: colors.border.withValues(alpha: 0.5)),
               ),
-              child: Icon(Icons.arrow_forward_rounded, color: colors.gold, size: 14),
+              child: Icon(Icons.arrow_forward_rounded,
+                  color: colors.gold, size: 14),
             ),
           ],
         ),

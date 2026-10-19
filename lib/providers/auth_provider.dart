@@ -11,7 +11,8 @@ import '../models/user_role.dart';
 /// vienen los datos. [initialUser] es la sesión restaurada al abrir la app
 /// (ver `main.dart`), así el usuario no tiene que iniciar sesión cada vez.
 class AuthProvider extends ChangeNotifier {
-  AuthProvider(this._repository, {AppUser? initialUser}) : _currentUser = initialUser;
+  AuthProvider(this._repository, {AppUser? initialUser})
+      : _currentUser = initialUser;
 
   // Instancia del repositorio de autenticación inyectado (Inversión de Dependencias)
   final AuthRepository _repository;
@@ -29,23 +30,7 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isLoggedIn => _currentUser != null;
 
-  /// REQ-04: Ejecuta el inicio de sesión contra el repositorio de datos.
-  /// Retorna `true` si la autenticación fue exitosa o `false` si falló.
-  Future<bool> login(String email, String password) async {
-    _setLoading(true);
-    try {
-      // Petición asíncrona al repositorio para obtener el usuario
-      _currentUser = await _repository.login(email: email, password: password);
-      _errorMessage = null; // Limpia errores previos si la llamada es exitosa
-      return true;
-    } catch (e) {
-      // Captura excepciones y establece el mensaje de error para la UI
-      _errorMessage = 'No pudimos iniciar sesión. Intenta de nuevo.';
-      return false;
-    } finally {
-      // Garantiza que el estado de carga cambie a false independientemente del resultado
-      _setLoading(false);
-    }
+  /// REQ-04: Inicia sesión y devuelve false si la autenticación falla.
   Future<bool> login(String email, String password) {
     return _run(
       () => _repository.login(email: email, password: password),
@@ -114,7 +99,8 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// Método privado para actualizar la bandera de carga y notificar a los oyentes.
-  Future<bool> _run(Future<AppUser> Function() action, {required String fallbackError}) async {
+  Future<bool> _run(Future<AppUser> Function() action,
+      {required String fallbackError}) async {
     _setLoading(true);
     try {
       _currentUser = await action();

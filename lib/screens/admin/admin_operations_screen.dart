@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/auth/admin_role_guard.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/admin_role_extension.dart';
 import '../../models/admin_permission.dart';
 import '../../providers/admin_provider.dart';
 import 'admin_negotiations_screen.dart';
@@ -17,11 +19,14 @@ class AdminOperationsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final provider = context.watch<AdminProvider>();
+    final isManager = context.isManager;
 
     final tabs = <Widget>[];
     final views = <Widget>[];
 
-    if (provider.isSuperAdmin || provider.hasPermission(AdminPermission.offerManagement)) {
+    if (!isManager &&
+        (provider.isSuperAdmin ||
+            provider.hasPermission(AdminPermission.offerManagement))) {
       tabs.add(
         const Tab(
           child: Row(
@@ -34,10 +39,18 @@ class AdminOperationsScreen extends StatelessWidget {
           ),
         ),
       );
-      views.add(const AdminOffersScreen());
+      views.add(
+        const AdminRoleGuard(
+          allowedRoles: [AdminRole.superAdmin, AdminRole.employee],
+          requiredPermissions: [AdminPermission.offerManagement],
+          child: AdminOffersScreen(),
+        ),
+      );
     }
 
-    if (provider.isSuperAdmin || provider.hasPermission(AdminPermission.negotiationManagement)) {
+    if (!isManager &&
+        (provider.isSuperAdmin ||
+            provider.hasPermission(AdminPermission.negotiationManagement))) {
       tabs.add(
         const Tab(
           child: Row(
@@ -50,7 +63,13 @@ class AdminOperationsScreen extends StatelessWidget {
           ),
         ),
       );
-      views.add(const AdminNegotiationsScreen());
+      views.add(
+        const AdminRoleGuard(
+          allowedRoles: [AdminRole.superAdmin, AdminRole.employee],
+          requiredPermissions: [AdminPermission.negotiationManagement],
+          child: AdminNegotiationsScreen(),
+        ),
+      );
     }
 
     if (provider.isSuperAdmin || provider.hasPermission(AdminPermission.reports)) {
@@ -66,7 +85,17 @@ class AdminOperationsScreen extends StatelessWidget {
           ),
         ),
       );
-      views.add(const AdminReportsScreen());
+      views.add(
+        const AdminRoleGuard(
+          allowedRoles: [
+            AdminRole.superAdmin,
+            AdminRole.manager,
+            AdminRole.employee,
+          ],
+          requiredPermissions: [AdminPermission.reports],
+          child: AdminReportsScreen(),
+        ),
+      );
     }
 
     if (tabs.isEmpty) {
