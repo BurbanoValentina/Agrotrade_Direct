@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/admin_permission.dart';
 import '../../providers/admin_provider.dart';
+import '../../widgets/qa_testing_panel_dialog.dart';
 import '../../widgets/theme_toggle_button.dart';
 import '../auth/login_screen.dart';
 import 'admin_dashboard_screen.dart';
@@ -210,15 +211,21 @@ class _AdminShellState extends State<AdminShell> {
                             Icon(
                               employee.isSuperAdmin
                                   ? Icons.workspace_premium_rounded
-                                  : Icons.shield_rounded,
+                                  : (employee.isManager ? Icons.analytics_outlined : Icons.shield_rounded),
                               size: 11,
-                              color: employee.isSuperAdmin ? colors.gold : colors.textSecondary,
+                              color: employee.isSuperAdmin
+                                  ? colors.gold
+                                  : (employee.isManager ? Colors.purpleAccent : colors.textSecondary),
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              employee.isSuperAdmin ? 'Super Admin' : 'Empleado',
+                              employee.isSuperAdmin
+                                  ? 'Super Admin'
+                                  : (employee.isManager ? 'Gerente (Consulta)' : 'Empleado'),
                               style: TextStyle(
-                                color: employee.isSuperAdmin ? colors.gold : colors.textPrimary,
+                                color: employee.isSuperAdmin
+                                    ? colors.gold
+                                    : (employee.isManager ? Colors.purpleAccent : colors.textPrimary),
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -256,6 +263,22 @@ class _AdminShellState extends State<AdminShell> {
           ],
         ),
         actions: [
+          if (employee.isSuperAdmin) ...[
+            IconButton(
+              tooltip: 'Panel QA & Testing',
+              icon: Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: colors.gold.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: colors.gold.withValues(alpha: 0.4)),
+                ),
+                child: Icon(Icons.bug_report_rounded, color: colors.gold, size: 18),
+              ),
+              onPressed: () => QaTestingPanelDialog.show(context),
+            ),
+            const SizedBox(width: 4),
+          ],
           const ThemeToggleButton(compact: true),
           const SizedBox(width: 6),
           IconButton(
