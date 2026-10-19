@@ -129,7 +129,9 @@ Backend listo (ver `supabase/README.md` → *Panel admin*). Repositorio: `contex
 
 Desde la migración `20261019000000_commercial_privacy.sql` **la base de datos ya no entrega a ningún miembro del personal** (ni al super admin) el precio, volumen, notas o mensajes de una negociación ajena. Lo que el panel puede mostrar:
 
-- **Métricas agregadas:** `rpc('admin_dashboard_stats')` (permiso `dashboard`).
+- **Métricas agregadas:** `context.read<StatsRepository>().fetchDashboardStats()` → `PlatformStats` (permiso `dashboard`): usuarios por rol, ofertas y negociaciones por estado, tratos por producto (`confirmedByCrop`), tasa de cierre, rondas y horas promedio, reportes y certificados pendientes, y tratos por mes (`confirmedByMonth`, 6 meses).
+  - **Montos ocultos:** `totalValueUsd`, `totalVolumeMt`, `CropStats.avgPricePerMt` y los promedios llegan `null` cuando hay menos de 3 tratos (`minGroupSize`). Mostrar *"Datos insuficientes"*, nunca 0. `CropStats.hasAmounts` lo indica.
+  - Las claves anteriores (`totalUsers`, `activeOffers`, etc.) siguen igual, así que `DashboardStats` del mock sigue sirviendo mientras se migra.
 - **Actividad sin montos:** `audit_log` con permiso `security` trae los cambios de estado, quién y cuándo, pero no los precios negociados.
 
 Pantallas a ajustar: la vista de negociaciones del panel (`AdminNegotiation` / `admin_negotiations_screen.dart`) no puede listar precio ni términos por negociación; reemplazarla por agregados. Si consulta `negotiations` directamente, ahora recibirá 0 filas.

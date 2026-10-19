@@ -9,6 +9,7 @@ import 'data/repositories/auth_repository.dart';
 import 'data/repositories/certification_repository.dart';
 import 'data/repositories/moderation_repository.dart';
 import 'data/repositories/offer_repository.dart';
+import 'data/repositories/stats_repository.dart';
 import 'data/repositories/supabase_auth_repository.dart';
 import 'data/repositories/supabase_certification_repository.dart';
 import 'data/repositories/supabase_moderation_repository.dart';
@@ -42,6 +43,7 @@ Future<void> main() async {
         Provider<OfferRepository>(create: (_) => SupabaseOfferRepository()),
         Provider<CertificationRepository>(create: (_) => SupabaseCertificationRepository()),
         Provider<ModerationRepository>(create: (_) => SupabaseModerationRepository()),
+        Provider<StatsRepository>(create: (_) => SupabaseStatsRepository()),
         // Admin aún sin backend: sigue en mock hasta tener tablas en Supabase.
         Provider<AdminRepository>(create: (_) => MockAdminRepository()),
 

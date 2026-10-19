@@ -26,6 +26,7 @@ Cada archivo de `migrations/` se llama `AAAAMMDDHHMMSS_descripcion.sql` (formato
 | `20260927000000_certifications.sql` | Bucket privado `certifications` (PDF ≤ 5 MB), tabla `certifications`, RPC `review_certification` y campo calculado `offers.verified_certifications` (REQ-36) |
 | `20260927010000_user_warnings.sql` | Advertencias a usuarios (`user_warnings`, RPC `warn_user` / `acknowledge_warning`) con suspensión automática a las 3 (REQ-33) |
 | `20261019000000_commercial_privacy.sql` | Privacidad comercial: solo las partes ven precio y términos de su negociación; el personal ve agregados y auditoría sin montos (REQ-47) |
+| `20261019010000_dashboard_stats_v2.sql` | `admin_dashboard_stats` ampliado: conteos por estado, métricas por producto, desempeño y serie mensual; montos solo con 3 o más tratos y supresión complementaria (REQ-47, REQ-37) |
 
 ## Flujo de negociación (REQ-14 a REQ-17)
 
@@ -169,7 +170,7 @@ supabase functions deploy admin-users --project-ref <ref-del-proyecto> --use-api
 | Quién | Qué ve de una negociación ajena |
 | :--- | :--- |
 | Las dos partes | Todo (tabla, rondas, historial, línea de tiempo, auditoría completa de lo suyo) |
-| Personal con `dashboard` | Solo agregados: `rpc('admin_dashboard_stats')` |
+| Personal con `dashboard` | Solo agregados: `rpc('admin_dashboard_stats')`. Los montos (volumen, valor, precio promedio) y promedios de desempeño llegan como `null` si el grupo tiene menos de 3 tratos; si un producto queda oculto, los totales generales también (supresión complementaria) |
 | Personal con `security` | La auditoría sin montos: cambios de estado, quién y cuándo |
 | Cualquier otro rol | Nada |
 
