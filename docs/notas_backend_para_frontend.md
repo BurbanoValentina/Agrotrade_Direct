@@ -125,6 +125,17 @@ Backend listo (ver `supabase/README.md` → *Panel admin*). Repositorio: `contex
 
 ---
 
+## REQ-47 — Privacidad comercial (Valentina, panel admin)
+
+Desde la migración `20261019000000_commercial_privacy.sql` **la base de datos ya no entrega a ningún miembro del personal** (ni al super admin) el precio, volumen, notas o mensajes de una negociación ajena. Lo que el panel puede mostrar:
+
+- **Métricas agregadas:** `rpc('admin_dashboard_stats')` (permiso `dashboard`).
+- **Actividad sin montos:** `audit_log` con permiso `security` trae los cambios de estado, quién y cuándo, pero no los precios negociados.
+
+Pantallas a ajustar: la vista de negociaciones del panel (`AdminNegotiation` / `admin_negotiations_screen.dart`) no puede listar precio ni términos por negociación; reemplazarla por agregados. Si consulta `negotiations` directamente, ahora recibirá 0 filas.
+
+---
+
 ## Carga de ofertas (Market)
 
 `MarketProvider.loadOffers()` ya no se queda cargando para siempre si falla. Ahora expone `market.loadError`. Falta mostrarlo en `market_screen.dart` (mensaje + botón "Reintentar" que llame a `market.loadOffers()`), en lugar de la lista vacía.

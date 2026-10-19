@@ -8,6 +8,7 @@ Responsable: Johan Delgado (Backend & Database Engineer).
 supabase/
 ├── functions/    Edge Functions (código que corre en Supabase con la clave service_role)
 ├── migrations/   Cambios de esquema versionados, en orden de aplicación
+├── tests/        Pruebas SQL de seguridad y reglas de negocio (scripts/test_db.ps1)
 └── seed.sql      Datos de prueba (exportador demo + 5 ofertas)
 ```
 
@@ -24,6 +25,7 @@ Cada archivo de `migrations/` se llama `AAAAMMDDHHMMSS_descripcion.sql` (formato
 | `20260926010000_operation_history.sql` | RPC `my_operation_history` y `negotiation_timeline` (REQ-19, base de REQ-30); impide borrar ofertas con tratos confirmados; corrige la regla de revisión de alertas/reportes ante borrados en cascada |
 | `20260927000000_certifications.sql` | Bucket privado `certifications` (PDF ≤ 5 MB), tabla `certifications`, RPC `review_certification` y campo calculado `offers.verified_certifications` (REQ-36) |
 | `20260927010000_user_warnings.sql` | Advertencias a usuarios (`user_warnings`, RPC `warn_user` / `acknowledge_warning`) con suspensión automática a las 3 (REQ-33) |
+| `20261019000000_commercial_privacy.sql` | Privacidad comercial: solo las partes ven precio y términos de su negociación; el personal ve agregados y auditoría sin montos (REQ-47) |
 
 ## Flujo de negociación (REQ-14 a REQ-17)
 
@@ -66,9 +68,9 @@ Permisos de `staff_members.permissions` (mismos nombres que `AdminPermission` en
 | Permiso | Habilita |
 | :--- | :--- |
 | `offerManagement` | Editar y eliminar cualquier oferta |
-| `negotiationManagement` | Ver todas las negociaciones |
+| `negotiationManagement` | Solo estadísticas agregadas (REQ-47: nadie fuera de las partes ve precio o términos de una negociación) |
 | `userManagement` | Bloquear / desbloquear usuarios; marcar testers con `rpc('set_tester')` |
-| `security` | Ver todo el `audit_log` |
+| `security` | Ver la auditoría **sin montos de negociaciones** (estados, quién, cuándo) y las alertas |
 | `employeeManagement` | Agregar, editar y quitar empleados |
 
 Un `is_super_admin` tiene todos los permisos. Nadie puede modificar sus propios permisos, y solo un super admin gestiona a otro super admin.
@@ -112,7 +114,7 @@ supabase migration repair --status applied 20260925000000
 
 | RPC | Parámetros (todos opcionales salvo el id) | Devuelve |
 | :--- | :--- | :--- |
-| `my_operation_history` | `p_from`, `p_to` (fechas), `p_status` (`confirmed` / `rejected` / `cancelled`), `p_all_users` (solo con `negotiationManagement`) | Operaciones cerradas del usuario: producto, contraparte, precio, volumen, total, rondas, fechas, motivo, `my_role` |
+| `my_operation_history` | `p_from`, `p_to` (fechas), `p_status` (`confirmed` / `rejected` / `cancelled`) | Operaciones cerradas del usuario: producto, contraparte, precio, volumen, total, rondas, fechas, motivo, `my_role` |
 | `negotiation_timeline` | `p_negotiation_id` | Eventos en orden: `propuesta`, `aceptada`, `confirmacion`, `confirmada`, `rechazada`, `cancelada` |
 
 En Flutter: `OfferRepository.fetchOperationHistory()` / `fetchNegotiationTimeline()` y, para exportar, `OperationHistoryExporter` (`lib/services/`) con `toCsv()` y `toPdf()`.
@@ -159,6 +161,29 @@ supabase functions deploy admin-users --project-ref <ref-del-proyecto> --use-api
 `<ref-del-proyecto>` es el código de la URL de Supabase (`https://<ref>.supabase.co`). Para volver a publicar tras un cambio se repite el último comando.
 
 **Enlace de invitación:** en *Authentication → URL Configuration* agregar la URL de la app en *Redirect URLs* (en desarrollo web: `http://localhost:8080/**`) y, opcionalmente, definir el secreto `STAFF_INVITE_REDIRECT_URL` (*Edge Functions → Secrets*) con esa URL.
+
+## Privacidad comercial (REQ-47)
+
+**Solo las dos partes de una negociación ven su precio, volumen, notas y mensajes.** Nadie más: ni el super admin, ni un admin con todos los permisos, ni otros usuarios. Corrección de la profesora; decisiones D1 y D2 del reparto v2.
+
+| Quién | Qué ve de una negociación ajena |
+| :--- | :--- |
+| Las dos partes | Todo (tabla, rondas, historial, línea de tiempo, auditoría completa de lo suyo) |
+| Personal con `dashboard` | Solo agregados: `rpc('admin_dashboard_stats')` |
+| Personal con `security` | La auditoría sin montos: cambios de estado, quién y cuándo |
+| Cualquier otro rol | Nada |
+
+El precio **publicado** de una oferta sigue siendo público (lo muestra el Market). Las pruebas negativas están en `tests/test_privacy.sql`: cada rol intenta leer precios ajenos por cada camino (tablas, RPC, auditoría, rondas) y debe fallar.
+
+## Pruebas de la base de datos (REQ-25)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\test_db.ps1 -PgBin "C:\ruta\a\pgsql\bin"
+```
+
+Crea un PostgreSQL temporal (no toca Supabase), simula Auth y Storage (`tests/00_stub_supabase.sql`), aplica las migraciones **dos veces** y ejecuta cada `tests/test_*.sql` sobre una base limpia. Opciones: `-Detalle` (cada escenario OK / FALLO) y `-Filter privacy` (solo esa suite). Termina con código 1 si algo falla.
+
+Para agregar una prueba: un archivo `tests/test_<tema>.sql` que use `pg_temp.as_user(uuid)` y `pg_temp.t('etiqueta', 'SQL', debe_funcionar)` (ver `tests/01_helpers.sql`).
 
 ## Backup y restauración (REQ-40)
 
