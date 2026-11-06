@@ -138,6 +138,21 @@ Pantallas a ajustar: la vista de negociaciones del panel (`AdminNegotiation` / `
 
 ---
 
+## REQ-50 y REQ-46 — Puntos de consumo y gerente (Omar y Valentina)
+
+- **Puntos de consumo:** la tabla `coffee_consumption_points` ya existe con las columnas que lee `CoffeeConsumptionPoint.fromJson` (`city_name`, `country`, `latitude`, `longitude`, `annual_consumption_tons`, `main_import_grade`, `description`). Trae 6 puntos **de demostración** (`is_demo = true`) hasta que David cargue los reales (D7); el `SupabaseConsumptionPointRepository` de Omar funciona sin cambios.
+- **Gerente:** la base de datos ya aplica la matriz del documento v2. Para que el guard de navegación use el dato real en vez del mock:
+  ```dart
+  final row = await supabase.from('staff_members')
+      .select('is_super_admin, is_manager, permissions')
+      .eq('user_id', supabase.auth.currentUser!.id).maybeSingle();
+  // o simplemente: final isManager = await supabase.rpc('is_manager') as bool;
+  ```
+  Crear un gerente: `moderationRepository.inviteStaff(email: ..., isManager: true)` (sin permisos).
+- El gerente recibe 0 filas o un rechazo en cualquier acción (bloquear, advertir, resolver reportes, verificar certificados, editar configuración, gestionar empleados): ocultar esos botones evita mensajes de error, pero la seguridad ya no depende de la UI.
+
+---
+
 ## Carga de ofertas (Market)
 
 `MarketProvider.loadOffers()` ya no se queda cargando para siempre si falla. Ahora expone `market.loadError`. Falta mostrarlo en `market_screen.dart` (mensaje + botón "Reintentar" que llame a `market.loadOffers()`), en lugar de la lista vacía.

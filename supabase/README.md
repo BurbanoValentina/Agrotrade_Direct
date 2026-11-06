@@ -27,6 +27,8 @@ Cada archivo de `migrations/` se llama `AAAAMMDDHHMMSS_descripcion.sql` (formato
 | `20260927010000_user_warnings.sql` | Advertencias a usuarios (`user_warnings`, RPC `warn_user` / `acknowledge_warning`) con suspensión automática a las 3 (REQ-33) |
 | `20261019000000_commercial_privacy.sql` | Privacidad comercial: solo las partes ven precio y términos de su negociación; el personal ve agregados y auditoría sin montos (REQ-47) |
 | `20261019010000_dashboard_stats_v2.sql` | `admin_dashboard_stats` ampliado: conteos por estado, métricas por producto, desempeño y serie mensual; montos solo con 3 o más tratos y supresión complementaria (REQ-47, REQ-37) |
+| `20261105000000_coffee_consumption_points.sql` | Tabla `coffee_consumption_points` para la capa del Trade Map, con 6 puntos de demostración (`is_demo`); edición con permiso `settings` (REQ-50) |
+| `20261105010000_manager_role.sql` | Rol gerente de solo consulta: `staff_members.is_manager`, `has_view_permission`, `rpc('is_manager')`; el gerente ve dashboard, reportes, alertas y auditoría, y no ejecuta ninguna acción (REQ-46) |
 
 ## Flujo de negociación (REQ-14 a REQ-17)
 
@@ -63,6 +65,7 @@ En Flutter ya están envueltas en `OfferRepository` (`counterOffer`, `acceptPurc
 | `exportador` | Registro en la app | Publicar y editar sus ofertas; aceptar/rechazar solicitudes recibidas |
 | `importador` | Registro en la app | Enviar solicitudes; cancelar las propias |
 | `staff` | Al agregarlo a `staff_members` | Solo lo que otorgan sus permisos (no puede publicar ni negociar) |
+| `staff` gerente (`is_manager`) | Al agregarlo a `staff_members` con `is_manager = true` | **Solo consulta** (REQ-46): dashboard agregado, reportes, alertas y auditoría sin montos. Ninguna acción, aunque llame la API directamente |
 
 Permisos de `staff_members.permissions` (mismos nombres que `AdminPermission` en Flutter):
 
@@ -146,7 +149,7 @@ En Flutter: `CertificationRepository` (`uploadCertification`, `fetchMyCertificat
 
 | Acción (`body.action`) | Requiere | Qué hace |
 | :--- | :--- | :--- |
-| `create_staff` (`email`, `name`, `permissions[]`, `is_super_admin`) | `employeeManagement` (solo otorga permisos propios; super admin solo lo crea otro super admin) | Invita por correo; el empleado entra con el enlace y la app le pide crear contraseña (`AppUser.mustSetPassword`) |
+| `create_staff` (`email`, `name`, `permissions[]`, `is_super_admin`, `is_manager`) | `employeeManagement` (solo otorga permisos propios; super admin solo lo crea otro super admin) | Invita por correo; el empleado entra con el enlace y la app le pide crear contraseña (`AppUser.mustSetPassword`) |
 | `delete_user` (`user_id`) | `userManagement` (+ `employeeManagement` si es staff) | Borra la cuenta y sus PDF de certificados. **No** borra cuentas con tratos confirmados: hay que bloquearlas |
 
 Las reglas están en `rules.ts` y se prueban con Node: `node --test supabase/functions/admin-users/rules.test.ts`.

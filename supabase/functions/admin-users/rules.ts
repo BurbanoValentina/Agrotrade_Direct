@@ -26,6 +26,8 @@ export interface StaffRow {
   is_super_admin: boolean;
   permissions: string[];
   is_active: boolean;
+  /** Gerente (REQ-46): solo consulta, nunca ejecuta acciones. */
+  is_manager?: boolean;
 }
 
 /** Error con código HTTP y mensaje para el usuario (en español). */
@@ -42,7 +44,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function hasPermission(staff: StaffRow | null, permission: AdminPermission): boolean {
-  if (!staff || !staff.is_active) return false;
+  // Un gerente nunca tiene permisos de acción (igual que has_permission en la BD).
+  if (!staff || !staff.is_active || staff.is_manager) return false;
   return staff.is_super_admin || staff.permissions.includes(permission);
 }
 
@@ -51,6 +54,7 @@ export interface CreateStaffInput {
   name: string | null;
   permissions: AdminPermission[];
   isSuperAdmin: boolean;
+  isManager: boolean;
 }
 
 /**
@@ -87,6 +91,15 @@ export function validateCreateStaff(caller: StaffRow | null, body: unknown): Cre
   }
   const permissions = [...new Set(rawPermissions as AdminPermission[])];
   const isSuperAdmin = input.is_super_admin === true;
+  const isManager = input.is_manager === true;
+
+  // Gerente (REQ-46): solo consulta; no lleva permisos de acción ni es super admin.
+  if (isManager) {
+    if (isSuperAdmin || permissions.length > 0) {
+      throw new HttpError(400, "Un gerente solo consulta: no puede tener permisos de acción ni ser super admin.");
+    }
+    return { email, name: rawName || null, permissions: [], isSuperAdmin: false, isManager: true };
+  }
 
   if (!caller!.is_super_admin) {
     if (isSuperAdmin) {
@@ -101,7 +114,7 @@ export function validateCreateStaff(caller: StaffRow | null, body: unknown): Cre
     throw new HttpError(400, "Asigna al menos un permiso al empleado.");
   }
 
-  return { email, name: rawName || null, permissions, isSuperAdmin };
+  return { email, name: rawName || null, permissions, isSuperAdmin, isManager: false };
 }
 
 /** Extrae y valida el id del usuario a borrar (evita inyección en filtros). */
