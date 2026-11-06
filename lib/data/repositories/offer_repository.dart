@@ -79,6 +79,16 @@ abstract class OfferRepository {
   /// negociación pasa a `confirmed` y el volumen se descuenta de la oferta.
   Future<PurchaseRequest> confirmNegotiation(String negotiationId);
 
+  /// REQ-49: avanza el envío de un trato confirmado. El exportador marca
+  /// preparando → embarcado → enPuerto (puede saltar pasos, nunca retroceder);
+  /// el importador marca entregado una vez embarcada la carga. La otra parte
+  /// recibe una notificación de tipo envío.
+  Future<PurchaseRequest> updateShippingStatus(
+    String negotiationId,
+    ShippingStatus status, {
+    String? note,
+  });
+
   /// REQ-16 / REQ-19: historial de propuestas de una negociación, en orden.
   Future<List<NegotiationRound>> fetchNegotiationRounds(String negotiationId);
 
@@ -114,8 +124,6 @@ void validateHistoryStatus(NegotiationStatus? status) {
   }
 }
 
-/// Validación local de una solicitud antes de enviarla (evita una llamada a
-/// la BD por errores evidentes). La BD repite estas reglas de todos modos.
 /// Validación local de una oferta antes de publicarla (la BD repite las reglas).
 void validateOfferInput({
   required String variety,
@@ -141,6 +149,8 @@ void validateOfferInput({
   }
 }
 
+/// Validación local de una solicitud antes de enviarla (evita una llamada a
+/// la BD por errores evidentes). La BD repite estas reglas de todos modos.
 void validatePurchaseRequestInput({
   required double proposedPricePerMt,
   double? volumeMt,
@@ -155,6 +165,37 @@ void validatePurchaseRequestInput({
   if (notes != null && notes.length > maxPurchaseRequestNotesLength) {
     throw const RepositoryException(
         'Las notas no pueden superar los $maxPurchaseRequestNotesLength caracteres.');
+  }
+}
+
+/// REQ-49: mismas reglas que rpc('update_shipping_status')
+/// (migración 20261105030000_notifications_shipping) y mismos mensajes.
+void validateShippingUpdate(
+  PurchaseRequest neg,
+  ShippingStatus status,
+  String userId, {
+  String? note,
+}) {
+  if (neg.status != NegotiationStatus.confirmed) {
+    throw const RepositoryException('El envío se registra solo en tratos confirmados por ambas partes.');
+  }
+  if (note != null && note.trim().length > 500) {
+    throw const RepositoryException('La nota del envío no puede superar los 500 caracteres.');
+  }
+  if (status.isBuyerStep && userId != neg.buyerId) {
+    throw const RepositoryException('Solo el importador puede confirmar que recibió la carga.');
+  }
+  if (!status.isBuyerStep && userId != neg.sellerId) {
+    throw const RepositoryException(
+        'Solo el exportador actualiza el envío; el importador confirma la entrega.');
+  }
+  final current = neg.shippingStatus?.index ?? -1;
+  if (status.index <= current) {
+    throw RepositoryException('El envío ya está "${neg.shippingStatus!.label}"; solo puede avanzar.');
+  }
+  if (status.isBuyerStep && current < ShippingStatus.embarcado.index) {
+    throw const RepositoryException(
+        'No se puede confirmar la entrega de una carga que aún no ha sido embarcada.');
   }
 }
 
@@ -564,6 +605,19 @@ class MockOfferRepository implements OfferRepository {
     }
     _refreshOfferStatus(offer.id);
     return neg;
+  }
+
+  @override
+  Future<PurchaseRequest> updateShippingStatus(
+    String negotiationId,
+    ShippingStatus status, {
+    String? note,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final neg = _myNegotiation(negotiationId);
+    validateShippingUpdate(neg, status, currentUserId, note: note);
+    final now = DateTime.now();
+    return _save(neg.copyWith(shippingStatus: status, shippingUpdatedAt: now, updatedAt: now));
   }
 
   @override

@@ -30,6 +30,8 @@ Cada archivo de `migrations/` se llama `AAAAMMDDHHMMSS_descripcion.sql` (formato
 | `20261105000000_coffee_consumption_points.sql` | Tabla `coffee_consumption_points` para la capa del Trade Map, con 6 puntos de demostración (`is_demo`); edición con permiso `settings` (REQ-50) |
 | `20261105010000_manager_role.sql` | Rol gerente de solo consulta: `staff_members.is_manager`, `has_view_permission`, `rpc('is_manager')`; el gerente ve dashboard, reportes, alertas y auditoría, y no ejecuta ninguna acción (REQ-46) |
 | `20261105020000_offer_management.sql` | Publicar, editar y cerrar ofertas: toda oferta nace `activa`, valida precio/cantidad/variedad/región/destino, protege vendedor y fecha, no deja bajar la cantidad por debajo de lo ya aceptado, y al cerrar cancela las solicitudes en curso (REQ-06 a REQ-10) |
+| `20261105030000_notifications_shipping.sql` | Notificaciones (`notifications`, Realtime) y preferencias de alertas; avisos automáticos de cada cambio de negociación; estado del envío con `rpc('update_shipping_status')`, `shipment_events` y eventos de envío en la línea de tiempo (REQ-20, REQ-49) |
+| `20261105040000_weather_alerts.sql` | Clima: regiones productoras, caché del pronóstico, umbrales en `platform_config` y alertas climáticas que notifican a los interesados; lo alimenta la Edge Function `weather` (REQ-48, REQ-49) |
 
 ## Flujo de negociación (REQ-14 a REQ-17)
 
@@ -180,13 +182,61 @@ supabase functions deploy admin-users --project-ref <ref-del-proyecto> --use-api
 
 El precio **publicado** de una oferta sigue siendo público (lo muestra el Market). Las pruebas negativas están en `tests/test_privacy.sql`: cada rol intenta leer precios ajenos por cada camino (tablas, RPC, auditoría, rondas) y debe fallar.
 
+## Notificaciones y envío (REQ-20, REQ-49)
+
+**Bandeja:** tabla `notifications` (`type`: `negociacion`, `envio`, `clima`, `sistema`). Cada usuario ve solo las suyas, puede marcarlas como leídas (`read_at`) o borrarlas; **solo la base de datos las crea**. La tabla está en la publicación de Realtime, así que la app las recibe al instante (`NotificationRepository.watchNew()`).
+
+| Evento | Quién recibe |
+| :--- | :--- |
+| Solicitud de compra nueva | Exportador |
+| Contraoferta | Quien tiene el turno de responder |
+| Aceptación, confirmación final, rechazo, cancelación | La otra parte (o ambas si lo hizo el sistema, ej. rechazo por volumen) |
+| Primera confirmación | Quien falta por confirmar |
+| Paso del envío | La otra parte (tipo `envio`) |
+| Alerta de clima | Exportadores con ofertas en la región y partes de tratos en curso o envíos sin entregar (tipo `clima`) |
+
+**Preferencias:** `alert_preferences` (`weather_alerts`, `shipping_alerts`). Sin fila, todo encendido. Las de negociación no se pueden apagar.
+
+**Envío:** después de que ambas partes confirman, `rpc('update_shipping_status', {p_negotiation_id, p_status, p_note})`. El exportador marca `preparando` → `embarcado` → `en_puerto` (puede saltar pasos, nunca retroceder); el importador marca `entregado` cuando ya se embarcó. El estado queda en `negotiations.shipping_status`, cada paso en `shipment_events` y en `negotiation_timeline` (evento `envio`).
+
+## Clima y alertas climáticas (REQ-48, REQ-49)
+
+**API:** Open-Meteo (gratis, sin llave; uso no comercial; para producción se necesita su plan pago). La app **no** la llama directo: usa la **Edge Function `weather`** (`supabase/functions/weather/`), que guarda el pronóstico 3 horas en `weather_forecasts` y genera las alertas. Si se cambia a una API con llave, la llave va en *Edge Functions → Secrets* y la app no cambia.
+
+| Acción (`body.action`) | Requiere | Qué hace |
+| :--- | :--- | :--- |
+| `forecast` (`region_id`) | Sesión iniciada | Pronóstico de 7 días de la región (caché de 3 h; si Open-Meteo falla, devuelve la última copia con `stale: true`) |
+| `check_alerts` | Personal con `settings` (no gerente) o encabezado `x-cron-secret` | Revisa todas las regiones con ofertas o tratos en curso y envía las alertas |
+
+- **Regiones:** `weather_regions` (13 zonas de café y cacao con coordenadas y alias). Una oferta se asocia por su `origin_region` (nombre o alias, sin importar tildes): `Huila`, `Pitalito`, `Eje Cafetero`, `Nariño`, `Sierra Nevada`, etc. Las edita el personal con `settings`.
+- **Umbrales** (en `platform_config`, permiso `settings`): lluvia ≥ `weather_rain_mm` (50 mm), helada ≤ `weather_frost_c` (2 °C), calor ≥ `weather_heat_c` (35 °C), viento ≥ `weather_wind_kmh` (60 km/h). Se revisan los próximos 3 días.
+- **Alertas:** `weather_alerts` (una por región, día y tipo; nunca se repiten). Cualquier usuario con sesión las ve.
+
+Reglas probadas con Node: `node --test supabase/functions/weather/rules.test.ts`. Se publica igual que `admin-users`:
+
+```powershell
+supabase functions deploy weather --project-ref <ref-del-proyecto> --use-api
+```
+
+**Revisión automática (opcional):** cada consulta de pronóstico ya genera las alertas de esa región. Para revisar todas las regiones solas cada 6 horas: definir el secreto `CRON_SECRET` en *Edge Functions → Secrets*, activar las extensiones `pg_cron` y `pg_net` (*Database → Extensions*) y ejecutar en el SQL Editor (reemplazando los valores entre `<>`; no subir este SQL al repositorio con el secreto):
+
+```sql
+SELECT cron.schedule('weather-alerts', '0 */6 * * *', $$
+  SELECT net.http_post(
+    url := 'https://<ref>.supabase.co/functions/v1/weather',
+    headers := jsonb_build_object('Content-Type', 'application/json',
+      'Authorization', 'Bearer <anon key>', 'x-cron-secret', '<CRON_SECRET>'),
+    body := '{"action": "check_alerts"}'::jsonb);
+$$);
+```
+
 ## Pruebas de la base de datos (REQ-25)
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\test_db.ps1 -PgBin "C:\ruta\a\pgsql\bin"
 ```
 
-Crea un PostgreSQL temporal (no toca Supabase), simula Auth y Storage (`tests/00_stub_supabase.sql`), aplica las migraciones **dos veces** y ejecuta cada `tests/test_*.sql` sobre una base limpia. Opciones: `-Detalle` (cada escenario OK / FALLO) y `-Filter privacy` (solo esa suite). Termina con código 1 si algo falla.
+Crea un PostgreSQL temporal (no toca Supabase), simula Auth, Storage y la publicación de Realtime (`tests/00_stub_supabase.sql`), aplica las migraciones **dos veces** y ejecuta cada `tests/test_*.sql` sobre una base limpia. Opciones: `-Detalle` (cada escenario OK / FALLO) y `-Filter privacy` (solo esa suite). Termina con código 1 si algo falla.
 
 Para agregar una prueba: un archivo `tests/test_<tema>.sql` que use `pg_temp.as_user(uuid)` y `pg_temp.t('etiqueta', 'SQL', debe_funcionar)` (ver `tests/01_helpers.sql`).
 

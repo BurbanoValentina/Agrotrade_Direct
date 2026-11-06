@@ -178,6 +178,40 @@ Pantallas a ajustar: la vista de negociaciones del panel (`AdminNegotiation` / `
 
 ---
 
+## REQ-20, REQ-48 y REQ-49 — Notificaciones, envío y clima (Omar, Valery y Valentina)
+
+Todo está listo en la base de datos y registrado en `main.dart`: `context.read<NotificationRepository>()` y `context.read<WeatherRepository>()`. Cada repositorio tiene versión Mock para trabajar sin conexión.
+
+**Notificaciones (campana en la barra superior):**
+- `fetchNotifications()` → `List<AppNotification>` (`title`, `body`, `type`, `isRead`, `createdAt`, `negotiationId` para abrir el trato en My Deals).
+- `unreadCount()` para el globo; `markAsRead(id)`, `markAllAsRead()`, `deleteNotification(id)`.
+- Tiempo real: `watchNew().listen((n) => ...)` y cancelar la suscripción al cerrar sesión. Sirve para un SnackBar o para subir el contador.
+- Ícono por `type`: negociación 🤝, envío 🚢, clima 🌧️.
+
+**Preferencias de alertas (Valery, pantalla Configuración, REQ-43):**
+```dart
+final repo = context.read<NotificationRepository>();
+final prefs = await repo.fetchPreferences();            // ambas en true por defecto
+await repo.savePreferences(prefs.copyWith(weatherAlerts: false));
+```
+Dos interruptores: "Alertas de clima" y "Alertas de envío". Las de negociación siempre llegan.
+
+**Estado del envío (My Deals, tratos confirmados):**
+- `deal.shippingStatus` (`ShippingStatus.preparando / embarcado / enPuerto / entregado`, `label` en español) y `deal.nextShippingStep`.
+- Mostrar el botón solo si `deal.canAdvanceShipping(miId)`: el exportador ve "Marcar como ${deal.nextShippingStep!.label}" y el importador ve "Confirmar entrega" cuando la carga ya está embarcada.
+- `offerRepository.updateShippingStatus(deal.id, deal.nextShippingStep!, note: 'Contenedor MSCU…')` → devuelve el trato actualizado; los errores llegan en español como `RepositoryException`.
+- La línea de tiempo (`fetchNegotiationTimeline`) ya incluye los pasos con `type == 'envio'`.
+
+**Clima (Omar, ubicación según D4):**
+- `weatherRepository.fetchRegions()` → zonas productoras (`name`, `department`, `latitude`, `longitude`), sirven también como marcadores en el Trade Map.
+- `fetchForecast('huila')` → `WeatherForecast.days` (7 días: `description` en español, `maxTempC`, `minTempC`, `precipitationMm`, `maxWindKmh`). Si `stale` es true, mostrar "Datos de hace un rato: el servicio del clima no respondió".
+- `fetchAlerts()` → alertas vigentes (`message`, `kind.label`, `alertDate`) para un banner.
+- La API del clima es Open-Meteo vía la Edge Function `weather`: **no hay llave en la app** ni hace falta configurar nada en Flutter.
+
+**Panel admin (Valentina):** un botón "Revisar alertas de clima ahora" para el personal con permiso `settings` → `weatherRepository.runAlertCheck()` devuelve `{regions_checked, alerts_created, notified}`. Los umbrales (`weather_rain_mm`, `weather_frost_c`, `weather_heat_c`, `weather_wind_kmh`) están en `platform_config`, junto a la comisión.
+
+---
+
 ## Panel de administración (REQ-24 / REQ-33)
 
 El backend de roles y permisos ya existe (ver `supabase/README.md` → *Roles y permisos*). Para conectarlo:

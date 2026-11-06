@@ -273,6 +273,24 @@ class SupabaseOfferRepository implements OfferRepository {
     return _negotiationRpc('confirm_negotiation', {'p_negotiation_id': negotiationId});
   }
 
+  /// REQ-49: avanza el estado del envío (rpc update_shipping_status).
+  @override
+  Future<PurchaseRequest> updateShippingStatus(
+    String negotiationId,
+    ShippingStatus status, {
+    String? note,
+  }) {
+    final cleanNote = _clean(note);
+    if (cleanNote != null && cleanNote.length > 500) {
+      throw const RepositoryException('La nota del envío no puede superar los 500 caracteres.');
+    }
+    return _negotiationRpc('update_shipping_status', {
+      'p_negotiation_id': negotiationId,
+      'p_status': status.dbValue,
+      'p_note': cleanNote,
+    });
+  }
+
   /// REQ-16 / REQ-19: historial de propuestas de la negociación.
   @override
   Future<List<NegotiationRound>> fetchNegotiationRounds(String negotiationId) async {

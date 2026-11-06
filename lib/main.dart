@@ -8,12 +8,14 @@ import 'data/repositories/admin_repository.dart';
 import 'data/repositories/auth_repository.dart';
 import 'data/repositories/certification_repository.dart';
 import 'data/repositories/moderation_repository.dart';
+import 'data/repositories/notification_repository.dart';
 import 'data/repositories/offer_repository.dart';
 import 'data/repositories/stats_repository.dart';
 import 'data/repositories/supabase_auth_repository.dart';
 import 'data/repositories/supabase_certification_repository.dart';
 import 'data/repositories/supabase_moderation_repository.dart';
 import 'data/repositories/supabase_offer_repository.dart';
+import 'data/repositories/weather_repository.dart';
 import 'providers/admin_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/market_provider.dart';
@@ -44,6 +46,8 @@ Future<void> main() async {
         Provider<CertificationRepository>(create: (_) => SupabaseCertificationRepository()),
         Provider<ModerationRepository>(create: (_) => SupabaseModerationRepository()),
         Provider<StatsRepository>(create: (_) => SupabaseStatsRepository()),
+        Provider<NotificationRepository>(create: (_) => SupabaseNotificationRepository()),
+        Provider<WeatherRepository>(create: (_) => SupabaseWeatherRepository()),
         // Admin aún sin backend: sigue en mock hasta tener tablas en Supabase.
         Provider<AdminRepository>(create: (_) => MockAdminRepository()),
 

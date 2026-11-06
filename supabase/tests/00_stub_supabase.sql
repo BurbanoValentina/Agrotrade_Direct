@@ -15,6 +15,9 @@ GRANT EXECUTE ON FUNCTION auth.uid() TO anon, authenticated;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
 
+-- Supabase Realtime: publicación a la que se agregan las tablas en vivo.
+CREATE PUBLICATION supabase_realtime;
+
 -- Supabase Storage (subconjunto de columnas reales)
 CREATE SCHEMA storage;
 CREATE TABLE storage.buckets (
