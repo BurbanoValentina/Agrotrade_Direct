@@ -6,6 +6,7 @@ import '../../models/app_user.dart';
 import '../../models/blocked_user.dart';
 import '../../models/crop_offer.dart';
 import '../../models/negotiation.dart';
+import '../../models/purchase_request.dart';
 import '../../models/suspicious_activity.dart';
 import '../mock/mock_admin_data.dart';
 import '../mock/mock_data.dart';
@@ -14,7 +15,8 @@ import '../mock/mock_data.dart';
 abstract class AdminRepository {
   Future<AdminEmployee?> loginEmployee(String email, String password);
   Future<List<AdminEmployee>> getEmployees();
-  Future<AdminEmployee> createEmployee(String name, String email, String createdBy);
+  Future<AdminEmployee> createEmployee(
+      String name, String email, String createdBy);
   Future<void> updateEmployee(AdminEmployee employee);
   Future<void> deleteEmployee(String id);
 
@@ -66,7 +68,7 @@ class MockAdminRepository implements AdminRepository {
     buffer.write(digits[_random.nextInt(digits.length)]);
     buffer.write(special[_random.nextInt(special.length)]);
     for (var i = 0; i < 5; i++) {
-    const all = chars + upper + digits;
+      const all = chars + upper + digits;
       buffer.write(all[_random.nextInt(all.length)]);
     }
     return buffer.toString();
@@ -185,10 +187,11 @@ class MockAdminRepository implements AdminRepository {
         _alerts.where((a) => a.status == AlertStatus.pendiente).length;
     return DashboardStats(
       totalUsers: _users.length,
-      activeOffers:
-          _offers.where((o) => o.status == OfferStatus.activa).length,
+      activeOffers: _offers.where((o) => o.status == OfferStatus.activa).length,
       activeNegotiations: _negotiations
-          .where((n) => n.status == NegotiationStatus.pendiente)
+          .where((n) =>
+              n.status == NegotiationStatus.pending ||
+              n.status == NegotiationStatus.countered)
           .length,
       blockedUsers: _blockedUsers.length,
       pendingAlerts: pendingAlerts,

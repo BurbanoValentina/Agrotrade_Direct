@@ -3,13 +3,15 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../models/negotiation.dart';
+import '../../models/purchase_request.dart';
 import '../../providers/admin_provider.dart';
 
 class AdminNegotiationsScreen extends StatefulWidget {
   const AdminNegotiationsScreen({super.key});
 
   @override
-  State<AdminNegotiationsScreen> createState() => _AdminNegotiationsScreenState();
+  State<AdminNegotiationsScreen> createState() =>
+      _AdminNegotiationsScreenState();
 }
 
 class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
@@ -20,24 +22,32 @@ class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
     final colors = context.colors;
     final admin = context.watch<AdminProvider>();
 
-    final filters = ['Todas', 'Pendientes', 'Aceptadas', 'Rechazadas', 'Completadas'];
+    final filters = [
+      'Todas',
+      'Pendientes',
+      'Aceptadas',
+      'Rechazadas',
+      'Completadas'
+    ];
 
     final filteredNegotiations = admin.negotiations.where((neg) {
       if (_selectedFilter == 'Todas') return true;
       if (_selectedFilter == 'Pendientes' &&
-          neg.status == NegotiationStatus.pendiente) {
+          (neg.status == NegotiationStatus.pending ||
+              neg.status == NegotiationStatus.countered)) {
         return true;
       }
       if (_selectedFilter == 'Aceptadas' &&
-          neg.status == NegotiationStatus.aceptada) {
+          neg.status == NegotiationStatus.accepted) {
         return true;
       }
       if (_selectedFilter == 'Rechazadas' &&
-          neg.status == NegotiationStatus.rechazada) {
+          (neg.status == NegotiationStatus.rejected ||
+              neg.status == NegotiationStatus.cancelled)) {
         return true;
       }
       if (_selectedFilter == 'Completadas' &&
-          neg.status == NegotiationStatus.completada) {
+          neg.status == NegotiationStatus.confirmed) {
         return true;
       }
       return false;
@@ -66,9 +76,17 @@ class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
         }
 
         // Split-Layout Panorámico de pantalla completa en Desktop
-        final pendientesCount = admin.negotiations.where((n) => n.status == NegotiationStatus.pendiente).length;
-        final aceptadasCount = admin.negotiations.where((n) => n.status == NegotiationStatus.aceptada).length;
-        final completadasCount = admin.negotiations.where((n) => n.status == NegotiationStatus.completada).length;
+        final pendientesCount = admin.negotiations
+            .where((n) =>
+                n.status == NegotiationStatus.pending ||
+                n.status == NegotiationStatus.countered)
+            .length;
+        final aceptadasCount = admin.negotiations
+            .where((n) => n.status == NegotiationStatus.accepted)
+            .length;
+        final completadasCount = admin.negotiations
+            .where((n) => n.status == NegotiationStatus.confirmed)
+            .length;
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 20.0),
@@ -108,11 +126,15 @@ class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.handshake_rounded, size: 18, color: colors.gold),
+                                Icon(Icons.handshake_rounded,
+                                    size: 18, color: colors.gold),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Mesa Comercial Activa',
-                                  style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w800, fontSize: 13),
+                                  style: TextStyle(
+                                      color: colors.textPrimary,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 13),
                                 ),
                               ],
                             ),
@@ -121,23 +143,41 @@ class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text('En Negociación', style: TextStyle(color: colors.textMuted, fontSize: 11)),
+                                      Text('En Negociación',
+                                          style: TextStyle(
+                                              color: colors.textMuted,
+                                              fontSize: 11)),
                                       const SizedBox(height: 2),
-                                      Text('$pendientesCount tratos', style: TextStyle(color: colors.gold, fontWeight: FontWeight.w800, fontSize: 15)),
+                                      Text('$pendientesCount tratos',
+                                          style: TextStyle(
+                                              color: colors.gold,
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 15)),
                                     ],
                                   ),
                                 ),
-                                Container(width: 1, height: 30, color: colors.border),
+                                Container(
+                                    width: 1, height: 30, color: colors.border),
                                 const SizedBox(width: 14),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text('Cerrados / Listos', style: TextStyle(color: colors.textMuted, fontSize: 11)),
+                                      Text('Cerrados / Listos',
+                                          style: TextStyle(
+                                              color: colors.textMuted,
+                                              fontSize: 11)),
                                       const SizedBox(height: 2),
-                                      Text('${aceptadasCount + completadasCount}', style: TextStyle(color: colors.statusActive, fontWeight: FontWeight.w800, fontSize: 15)),
+                                      Text(
+                                          '${aceptadasCount + completadasCount}',
+                                          style: TextStyle(
+                                              color: colors.statusActive,
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 15)),
                                     ],
                                   ),
                                 ),
@@ -158,7 +198,8 @@ class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 14),
                       decoration: BoxDecoration(
                         color: colors.surface,
                         borderRadius: BorderRadius.circular(16),
@@ -169,7 +210,8 @@ class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.handshake_rounded, size: 20, color: colors.gold),
+                              Icon(Icons.handshake_rounded,
+                                  size: 20, color: colors.gold),
                               const SizedBox(width: 10),
                               Text(
                                 'Auditoría de Acuerdos Comerciales',
@@ -182,7 +224,8 @@ class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
                             ],
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: colors.surfaceAlt,
                               borderRadius: BorderRadius.circular(10),
@@ -204,7 +247,8 @@ class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
                     Expanded(
                       child: filteredNegotiations.isEmpty
                           ? _buildEmptyState(colors)
-                          : _buildNegotiationsList(filteredNegotiations, colors),
+                          : _buildNegotiationsList(
+                              filteredNegotiations, colors),
                     ),
                   ],
                 ),
@@ -228,9 +272,12 @@ class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
               onTap: () => setState(() => _selectedFilter = filter),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected ? colors.gold.withValues(alpha: 0.15) : colors.surfaceAlt,
+                  color: isSelected
+                      ? colors.gold.withValues(alpha: 0.15)
+                      : colors.surfaceAlt,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: isSelected ? colors.gold : colors.border,
@@ -266,7 +313,9 @@ class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
               duration: const Duration(milliseconds: 180),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: isSelected ? colors.gold.withValues(alpha: 0.15) : colors.surface,
+                color: isSelected
+                    ? colors.gold.withValues(alpha: 0.15)
+                    : colors.surface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isSelected ? colors.gold : colors.border,
@@ -276,7 +325,9 @@ class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
               child: Row(
                 children: [
                   Icon(
-                    isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                    isSelected
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked_rounded,
                     size: 16,
                     color: isSelected ? colors.gold : colors.textMuted,
                   ),
@@ -285,7 +336,8 @@ class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
                     filter,
                     style: TextStyle(
                       color: isSelected ? colors.gold : colors.textPrimary,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      fontWeight:
+                          isSelected ? FontWeight.w800 : FontWeight.w600,
                       fontSize: 13,
                     ),
                   ),
@@ -310,7 +362,8 @@ class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.privacy_tip_outlined, color: Colors.blueAccent, size: 18),
+          const Icon(Icons.privacy_tip_outlined,
+              color: Colors.blueAccent, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -352,7 +405,8 @@ class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
     );
   }
 
-  Widget _buildNegotiationsList(List<Negotiation> negotiations, dynamic colors) {
+  Widget _buildNegotiationsList(
+      List<Negotiation> negotiations, dynamic colors) {
     return ListView.separated(
       itemCount: negotiations.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -360,206 +414,226 @@ class _AdminNegotiationsScreenState extends State<AdminNegotiationsScreen> {
         final neg = negotiations[index];
 
         final (badgeColor, statusIcon) = switch (neg.status) {
-          NegotiationStatus.pendiente => (colors.gold, Icons.schedule_rounded),
-          NegotiationStatus.aceptada => (colors.statusActive, Icons.check_circle_rounded),
-          NegotiationStatus.rechazada => (Colors.redAccent, Icons.cancel_rounded),
-          NegotiationStatus.completada => (const Color(0xFF3B82F6), Icons.task_alt_rounded),
+          NegotiationStatus.pending => (colors.gold, Icons.schedule_rounded),
+          NegotiationStatus.countered => (
+              Colors.orangeAccent,
+              Icons.swap_horiz_rounded
+            ),
+          NegotiationStatus.accepted => (
+              colors.statusActive,
+              Icons.check_circle_rounded
+            ),
+          NegotiationStatus.confirmed => (
+              const Color(0xFF3B82F6),
+              Icons.task_alt_rounded
+            ),
+          NegotiationStatus.rejected || NegotiationStatus.cancelled => (
+              Colors.redAccent,
+              Icons.cancel_rounded
+            ),
         };
 
-                      return Container(
+        return Container(
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: colors.border),
+            boxShadow: [
+              BoxShadow(
+                color:
+                    Colors.black.withValues(alpha: colors.isDark ? 0.2 : 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Bar: Variety & Status Badge
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: colors.gold.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.handshake_rounded,
+                          color: colors.gold, size: 18),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        neg.offerVariety,
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: badgeColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: badgeColor.withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(statusIcon, size: 13, color: badgeColor),
+                          const SizedBox(width: 5),
+                          Text(
+                            neg.status.label,
+                            style: TextStyle(
+                              color: badgeColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Buyer & Seller info
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: colors.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: colors.border),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: colors.isDark ? 0.2 : 0.03),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
+                          color: colors.surfaceAlt,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'COMPRADOR',
+                              style: TextStyle(
+                                color: colors.textMuted,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              neg.buyerName,
+                              style: TextStyle(
+                                color: colors.textPrimary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: colors.surfaceAlt,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'VENDEDOR',
+                              style: TextStyle(
+                                color: colors.textMuted,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              neg.sellerName,
+                              style: TextStyle(
+                                color: colors.textPrimary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+
+                // Commercial Privacy: Individual terms are masked (REQ-47)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: colors.surfaceAlt,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: colors.border),
+                          ),
+                          child: Row(
                             children: [
-                              // Top Bar: Variety & Status Badge
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: colors.gold.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Icon(Icons.handshake_rounded, color: colors.gold, size: 18),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      neg.offerVariety,
-                                      style: TextStyle(
-                                        color: colors.textPrimary,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                    decoration: BoxDecoration(
-                                      color: badgeColor.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: badgeColor.withValues(alpha: 0.4)),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(statusIcon, size: 13, color: badgeColor),
-                                        const SizedBox(width: 5),
-                                        Text(
-                                          neg.status.label,
-                                          style: TextStyle(
-                                            color: badgeColor,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 14),
-
-                              // Buyer & Seller info
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: colors.surfaceAlt,
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'COMPRADOR',
-                                            style: TextStyle(
-                                              color: colors.textMuted,
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 3),
-                                          Text(
-                                            neg.buyerName,
-                                            style: TextStyle(
-                                              color: colors.textPrimary,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: colors.surfaceAlt,
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'VENDEDOR',
-                                            style: TextStyle(
-                                              color: colors.textMuted,
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 3),
-                                          Text(
-                                            neg.sellerName,
-                                            style: TextStyle(
-                                              color: colors.textPrimary,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 14),
-                              const Divider(height: 1),
-                              const SizedBox(height: 12),
-
-                              // Commercial Privacy: Individual terms are masked (REQ-47)
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          color: colors.surfaceAlt,
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: colors.border),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.lock_rounded, size: 14, color: colors.textMuted),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              'Términos Comerciales: ••••••••',
-                                              style: TextStyle(
-                                                color: colors.textMuted,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                                fontFamily: 'monospace',
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blueAccent.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Text(
-                                      '🔒 Confidencial (REQ-47)',
-                                      style: TextStyle(
-                                        color: Colors.blueAccent,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              Icon(Icons.lock_rounded,
+                                  size: 14, color: colors.textMuted),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Términos Comerciales: ••••••••',
+                                style: TextStyle(
+                                  color: colors.textMuted,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: 'monospace',
+                                ),
                               ),
                             ],
                           ),
                         ),
-                      );
-                    },
-                  );
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.blueAccent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        '🔒 Confidencial (REQ-47)',
+                        style: TextStyle(
+                          color: Colors.blueAccent,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }

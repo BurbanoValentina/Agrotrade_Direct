@@ -68,7 +68,8 @@ class _MarketScreenState extends State<MarketScreen> {
                     content: Text(
                       ok
                           ? context.l10n.translate('offer_published_success')
-                          : context.l10n.translate('offer_publish_error'),
+                          : context.read<MarketProvider>().lastError ??
+                              context.l10n.translate('offer_publish_error'),
                     ),
                     backgroundColor:
                         ok ? Colors.green.shade800 : Colors.redAccent,
@@ -502,6 +503,32 @@ class _MarketScreenState extends State<MarketScreen> {
     if (market.isLoading) {
       return Center(
         child: CircularProgressIndicator(color: colors.gold),
+      );
+    }
+
+    if (market.loadError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_off_rounded, size: 44, color: colors.textMuted),
+              const SizedBox(height: 12),
+              Text(
+                market.loadError!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colors.textSecondary, fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => context.read<MarketProvider>().loadOffers(),
+                icon: const Icon(Icons.refresh_rounded),
+                label: Text(context.l10n.translate('retry')),
+              ),
+            ],
+          ),
+        ),
       );
     }
 

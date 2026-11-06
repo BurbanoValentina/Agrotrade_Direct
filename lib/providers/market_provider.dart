@@ -110,14 +110,18 @@ class MarketProvider extends ChangeNotifier {
     }).toList();
   }
 
-
   /// REQ-06 a REQ-10: Publica una nueva oferta en el mercado
   Future<bool> addOffer(CropOffer offer) async {
+    _lastError = null;
     try {
       _offers.insert(0, offer);
       notifyListeners();
       return true;
+    } on RepositoryException catch (e) {
+      _lastError = e.message;
+      return false;
     } catch (e) {
+      _lastError = 'No se pudo publicar la oferta.';
       return false;
     }
   }
@@ -169,7 +173,6 @@ class MarketProvider extends ChangeNotifier {
     }
   }
 
-
   /// REQ-12: Actualiza la categoría del filtro rápido
   void setFilter(MarketFilter filter) {
     _filterOptions = _filterOptions.copyWith(category: filter);
@@ -200,7 +203,6 @@ class MarketProvider extends ChangeNotifier {
     }
   }
 
-
   /// REQ-12: Restablece todos los filtros a sus valores predeterminados
   void resetFilters() {
     _filterOptions = const MarketFilterOptions();
@@ -213,5 +215,4 @@ class MarketProvider extends ChangeNotifier {
     _searchQuery = query;
     notifyListeners();
   }
-
 }
