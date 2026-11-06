@@ -4,39 +4,168 @@ import '../../models/crop_offer.dart';
 import '../../models/negotiation_round.dart';
 import '../../models/operation_record.dart';
 import '../../models/purchase_request.dart';
-import '../mock/mock_data.dart';
+import '../services/local_storage_service.dart';
 import 'offer_repository.dart';
 import 'repository_exception.dart';
 import 'supabase_error_mapper.dart';
 
 /// Implementación real de persistencia en Supabase (PostgreSQL).
-/// Cumple con REQ-11, REQ-13 (lectura de ofertas), REQ-14 (solicitud de compra)
-/// y REQ-15 a REQ-17 (contraofertas, aceptar/rechazar y confirmar vía RPC).
+/// Cumple con REQ-06 a REQ-10 (publicar y administrar ofertas), REQ-11 y
+/// REQ-13 (lectura), REQ-14 (solicitud de compra), REQ-15 a REQ-17
+/// (negociación vía RPC) y REQ-27 (caché local para modo offline).
 class SupabaseOfferRepository implements OfferRepository {
   final SupabaseClient _supabase;
+  final LocalStorageService _cache;
 
-  SupabaseOfferRepository({SupabaseClient? client})
-      : _supabase = client ?? Supabase.instance.client;
+  SupabaseOfferRepository({SupabaseClient? client, LocalStorageService? cache})
+      : _supabase = client ?? Supabase.instance.client,
+        _cache = cache ?? LocalStorageService();
 
+  static const _offerColumns =
+      '*, verified_certifications, profiles:seller_id(name, rating, completed_trades)';
+
+  /// Ofertas del Market. Si no hay conexión devuelve la última copia guardada
+  /// en el teléfono (REQ-27); si tampoco hay copia, lanza el error real. Nunca
+  /// devuelve datos de ejemplo: sus ids no existen en la base.
   @override
   Future<List<CropOffer>> fetchOffers() async {
     try {
-      final response = await _supabase
-          .from('offers')
-          .select('*, verified_certifications, profiles:seller_id(name, rating, completed_trades)')
-          .order('created_at', ascending: false);
-
+      final response =
+          await _supabase.from('offers').select(_offerColumns).order('created_at', ascending: false);
       final list = (response as List<dynamic>)
           .map((json) => CropOffer.fromJson(json as Map<String, dynamic>))
           .toList();
-
-      if (list.isNotEmpty) {
-        return list;
-      }
-      return mockOffers;
+      await _cacheQuietly(list);
+      return list;
     } catch (e) {
-      // Fallback para modo offline o tabla vacía en desarrollo
-      return mockOffers;
+      final cached = await _cachedQuietly();
+      if (cached.isNotEmpty) return cached;
+      throw mapSupabaseError(e);
+    }
+  }
+
+  Future<void> _cacheQuietly(List<CropOffer> offers) async {
+    try {
+      await _cache.cacheOffers(offers);
+    } catch (_) {
+      // Sin almacenamiento local disponible (ej. pruebas): no es un error.
+    }
+  }
+
+  Future<List<CropOffer>> _cachedQuietly() async {
+    try {
+      return await _cache.getCachedOffers();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  String get _userId {
+    final user = _supabase.auth.currentUser;
+    if (user == null) {
+      throw const RepositoryException('Debes iniciar sesión.');
+    }
+    return user.id;
+  }
+
+  /// REQ-06 a REQ-10: publica la oferta. La BD fija el vendedor (usuario
+  /// actual) y el estado inicial `activa`; devuelve la oferta guardada con su id real.
+  @override
+  Future<CropOffer> publishOffer(CropOffer offer) async {
+    validateOfferInput(
+      variety: offer.variety,
+      originRegion: offer.originRegion,
+      destinationCountry: offer.destinationCountry,
+      askPricePerMt: offer.askPricePerMt,
+      volumeMt: offer.volumeMt,
+    );
+    final userId = _userId;
+    try {
+      final row = await _supabase
+          .from('offers')
+          .insert({
+            'seller_id': userId,
+            'crop_type': offer.cropType.name,
+            'variety': offer.variety.trim(),
+            'origin_region': offer.originRegion.trim(),
+            'origin_country': offer.originCountry.trim().isEmpty ? 'Colombia' : offer.originCountry.trim(),
+            'ask_price_per_mt': offer.askPricePerMt,
+            'volume_mt': offer.volumeMt,
+            'destination_country': offer.destinationCountry.trim(),
+            'certifications': offer.certifications,
+          })
+          .select(_offerColumns)
+          .single();
+      return CropOffer.fromJson(row);
+    } catch (e) {
+      throw mapSupabaseError(e);
+    }
+  }
+
+  @override
+  Future<CropOffer> updateOffer(
+    String offerId, {
+    double? askPricePerMt,
+    double? volumeMt,
+    String? destinationCountry,
+    List<String>? certifications,
+  }) async {
+    if (askPricePerMt != null && askPricePerMt <= 0) {
+      throw const RepositoryException('El precio por tonelada debe ser mayor que cero.');
+    }
+    if (volumeMt != null && volumeMt <= 0) {
+      throw const RepositoryException(
+          'La cantidad disponible debe ser mayor que cero; para retirar la oferta, ciérrala.');
+    }
+    final changes = {
+      if (askPricePerMt != null) 'ask_price_per_mt': askPricePerMt,
+      if (volumeMt != null) 'volume_mt': volumeMt,
+      if (destinationCountry != null) 'destination_country': destinationCountry.trim(),
+      if (certifications != null) 'certifications': certifications,
+    };
+    if (changes.isEmpty) {
+      throw const RepositoryException('No hay cambios para guardar.');
+    }
+    return _updateOwnOffer(offerId, changes);
+  }
+
+  @override
+  Future<CropOffer> closeOffer(String offerId) => _updateOwnOffer(offerId, {'status': 'cerrada'});
+
+  Future<CropOffer> _updateOwnOffer(String offerId, Map<String, dynamic> changes) async {
+    final userId = _userId;
+    final List<dynamic> rows;
+    try {
+      rows = await _supabase
+          .from('offers')
+          .update(changes)
+          .eq('id', offerId)
+          .eq('seller_id', userId)
+          .select(_offerColumns);
+    } catch (e) {
+      throw mapSupabaseError(e);
+    }
+    if (rows.isEmpty) {
+      throw const RepositoryException('La oferta no existe o no es tuya.');
+    }
+    return CropOffer.fromJson(rows.first as Map<String, dynamic>);
+  }
+
+  /// Ofertas del exportador actual, de la más reciente a la más antigua.
+  @override
+  Future<List<CropOffer>> fetchMyOffers() async {
+    final userId = _userId;
+    try {
+      final rows = await _supabase
+          .from('offers')
+          .select(_offerColumns)
+          .eq('seller_id', userId)
+          .order('created_at', ascending: false);
+      return (rows as List<dynamic>)
+          .map((json) => CropOffer.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw mapSupabaseError(e);
     }
   }
 

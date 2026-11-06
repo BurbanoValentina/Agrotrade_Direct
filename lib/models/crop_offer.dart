@@ -5,8 +5,9 @@ extension CropTypeLabel on CropType {
   String get label => this == CropType.cafe ? 'Café' : 'Cacao';
 }
 
-/// Estado de una oferta / negociación (REQ-16, REQ-18).
-enum OfferStatus { activa, negociando, confirmada, enTransito }
+/// Estado de una oferta / negociación (REQ-16, REQ-18). [cerrada] = retirada
+/// por el exportador (REQ-06 a REQ-10); mismos valores que `offers.status`.
+enum OfferStatus { activa, negociando, confirmada, enTransito, cerrada }
 
 extension OfferStatusLabel on OfferStatus {
   String get label {
@@ -19,6 +20,8 @@ extension OfferStatusLabel on OfferStatus {
         return 'CONFIRMED';
       case OfferStatus.enTransito:
         return 'IN TRANSIT';
+      case OfferStatus.cerrada:
+        return 'CLOSED';
     }
   }
 }
@@ -115,6 +118,8 @@ class CropOffer {
         return OfferStatus.confirmada;
       case 'enTransito':
         return OfferStatus.enTransito;
+      case 'cerrada':
+        return OfferStatus.cerrada;
       case 'activa':
       default:
         return OfferStatus.activa;

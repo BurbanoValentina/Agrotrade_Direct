@@ -29,6 +29,7 @@ Cada archivo de `migrations/` se llama `AAAAMMDDHHMMSS_descripcion.sql` (formato
 | `20261019010000_dashboard_stats_v2.sql` | `admin_dashboard_stats` ampliado: conteos por estado, métricas por producto, desempeño y serie mensual; montos solo con 3 o más tratos y supresión complementaria (REQ-47, REQ-37) |
 | `20261105000000_coffee_consumption_points.sql` | Tabla `coffee_consumption_points` para la capa del Trade Map, con 6 puntos de demostración (`is_demo`); edición con permiso `settings` (REQ-50) |
 | `20261105010000_manager_role.sql` | Rol gerente de solo consulta: `staff_members.is_manager`, `has_view_permission`, `rpc('is_manager')`; el gerente ve dashboard, reportes, alertas y auditoría, y no ejecuta ninguna acción (REQ-46) |
+| `20261105020000_offer_management.sql` | Publicar, editar y cerrar ofertas: toda oferta nace `activa`, valida precio/cantidad/variedad/región/destino, protege vendedor y fecha, no deja bajar la cantidad por debajo de lo ya aceptado, y al cerrar cancela las solicitudes en curso (REQ-06 a REQ-10) |
 
 ## Flujo de negociación (REQ-14 a REQ-17)
 

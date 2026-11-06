@@ -35,6 +35,8 @@ class OfferCard extends StatelessWidget {
         return colors.statusActive;
       case OfferStatus.enTransito:
         return colors.statusTransit;
+      case OfferStatus.cerrada:
+        return colors.textMuted;
     }
   }
 

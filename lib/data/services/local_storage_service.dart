@@ -14,6 +14,8 @@ class LocalStorageService {
       final List<Map<String, dynamic>> rawList = offers.map((offer) {
         return {
           'id': offer.id,
+          'sellerId': offer.sellerId,
+          'verifiedCertifications': offer.verifiedCertifications,
           'cropType': offer.cropType.name,
           'variety': offer.variety,
           'originRegion': offer.originRegion,
@@ -51,6 +53,9 @@ class LocalStorageService {
         final map = item as Map<String, dynamic>;
         return CropOffer(
           id: map['id'] ?? '',
+          sellerId: map['sellerId'] ?? '',
+          verifiedCertifications:
+              List<String>.from(map['verifiedCertifications'] ?? []),
           cropType:
               (map['cropType'] == 'cacao') ? CropType.cacao : CropType.cafe,
           variety: map['variety'] ?? '',

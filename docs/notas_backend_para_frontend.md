@@ -157,6 +157,25 @@ Pantallas a ajustar: la vista de negociaciones del panel (`AdminNegotiation` / `
 
 `MarketProvider.loadOffers()` ya no se queda cargando para siempre si falla. Ahora expone `market.loadError`. Falta mostrarlo en `market_screen.dart` (mensaje + botón "Reintentar" que llame a `market.loadOffers()`), en lugar de la lista vacía.
 
+- **Ya no hay ofertas falsas:** si Supabase falla, `fetchOffers()` devuelve la última copia guardada en el teléfono (REQ-27); si no hay copia, lanza el error real (queda en `loadError`). Antes mostraba ofertas de ejemplo cuyos ids no existen en la base, y cualquier solicitud de compra sobre ellas fallaba.
+
+---
+
+## REQ-06 a REQ-10 — Publicar, editar y cerrar ofertas (Omar)
+
+- **`market.addOffer(offer)` ahora guarda de verdad** en Supabase y devuelve `Future<bool>`. La oferta que aparece en la lista trae el id real, el vendedor y el estado `activa` que fija la base; el id, el vendedor y el estado que arme el formulario se ignoran. `market_screen.dart` ya revisa el `bool`, pero muestra "Error al publicar la oferta" sin decir por qué. Cambiar el texto del SnackBar a:
+  ```dart
+  content: Text(ok
+      ? 'Oferta publicada exitosamente'
+      : context.read<MarketProvider>().lastError ?? 'Error al publicar la oferta'),
+  ```
+- **Certificaciones:** el formulario envía siempre `['Organic', 'Fairtrade']` fijo. Debería dejar elegirlas (las que coinciden con certificados verificados del exportador salen con insignia, REQ-36).
+- **Editar:** `market.updateOffer(id, askPricePerMt: ..., volumeMt: ..., destinationCountry: ..., certifications: ...)` (solo los campos que cambian) → `bool` + `lastError`. Variedad, región y tipo de producto no se editan: si están mal, se cierra y se publica otra.
+- **Cerrar / retirar:** `market.closeOffer(id)` → la oferta queda `OfferStatus.cerrada` (etiqueta `CLOSED`) y las solicitudes pendientes de esa oferta se cancelan solas con el motivo "El exportador cerró la oferta.".
+- **"Mis ofertas":** `offerRepository.fetchMyOffers()` devuelve todas las ofertas del exportador, incluidas las cerradas. El botón "Gestionar mi Oferta" de `offer_card.dart` se muestra hoy a **cualquier** exportador; debería salir solo si `offer.sellerId == auth.currentUser.id`.
+- Mensajes que puede devolver la base (ya vienen en español en `lastError`): precio o cantidad en cero, variedad/región/destino vacíos, "No puedes bajar la cantidad a X MT: hay Y MT comprometidos en acuerdos aceptados.", "Hay un acuerdo aceptado pendiente de confirmar: confírmalo o cancélalo antes de cerrar la oferta.", "Esta oferta ya no se puede editar (estado: …).".
+- Recomendado: filtrar las cerradas del Market (`visibleOffers` las sigue mostrando con la etiqueta `CLOSED`).
+
 ---
 
 ## Panel de administración (REQ-24 / REQ-33)
