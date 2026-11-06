@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/constants/supabase_constants.dart';
+import 'core/services/consumption_point_repository.dart';
 import 'data/repositories/admin_repository.dart';
 import 'data/repositories/auth_repository.dart';
 import 'data/repositories/certification_repository.dart';
@@ -44,6 +45,9 @@ Future<void> main() async {
             create: (_) => SupabaseCertificationRepository()),
         Provider<ModerationRepository>(
             create: (_) => SupabaseModerationRepository()),
+        Provider<ConsumptionPointRepository>(
+          create: (_) => SupabaseConsumptionPointRepository(),
+        ),
         // Admin aún sin backend: sigue en mock hasta tener tablas en Supabase.
         Provider<AdminRepository>(create: (_) => MockAdminRepository()),
 

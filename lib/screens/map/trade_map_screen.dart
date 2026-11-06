@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
+import '../../core/services/consumption_point_repository.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/repositories/repository_exception.dart';
+import '../../models/coffee_consumption_point.dart';
 
 /// Seguimiento del estado de la operación con mapa interactivo Colombia-UE.
 /// Visualiza la ruta logística real entre los puertos de origen y destino.
@@ -20,6 +24,56 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
   // Coordenadas geográficas reales de los puertos
   final LatLng _buenaventura = const LatLng(3.8801, -77.0312);
   final LatLng _hamburgo = const LatLng(53.5511, 9.9937);
+  bool _showConsumptionPoints = false;
+  bool _isLoadingConsumptionPoints = false;
+  String? _consumptionPointsError;
+  List<CoffeeConsumptionPoint> _consumptionPoints = const [];
+
+  Future<void> _toggleConsumptionLayer() async {
+    if (_showConsumptionPoints) {
+      setState(() => _showConsumptionPoints = false);
+      return;
+    }
+
+    setState(() {
+      _showConsumptionPoints = true;
+      _consumptionPointsError = null;
+    });
+
+    if (_consumptionPoints.isNotEmpty || _isLoadingConsumptionPoints) return;
+
+    setState(() => _isLoadingConsumptionPoints = true);
+    try {
+      final points = await context
+          .read<ConsumptionPointRepository>()
+          .fetchConsumptionPoints();
+      if (!mounted) return;
+      setState(() => _consumptionPoints = points);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _consumptionPointsError = error is RepositoryException
+            ? error.message
+            : error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingConsumptionPoints = false);
+      }
+    }
+  }
+
+  void _showConsumptionPointDetails(CoffeeConsumptionPoint point) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _ConsumptionPointDetailsSheet(point: point),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -106,58 +160,155 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
                     border: Border.all(color: AppColors.border),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: FlutterMap(
-                    options: MapOptions(
-                      // Centrado sobre el Océano Atlántico para visibilidad de ambos continentes
-                      initialCenter: const LatLng(28.0, -35.0),
-                      initialZoom: 2.2,
-                    ),
+                  child: Stack(
                     children: [
-                      // Capa de los tiles geográficos reales de OpenStreetMap
-                      TileLayer(
-                        urlTemplate:
-                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName: 'com.agrotrade.direct',
-                      ),
-
-                      // Línea marítima de la ruta
-                      PolylineLayer(
-                        polylines: [
-                          Polyline(
-                            points: routePoints,
-                            color: AppColors.gold,
-                            strokeWidth: 3.5,
+                      FlutterMap(
+                        options: const MapOptions(
+                          // Centrado sobre el Océano Atlántico para visibilidad de ambos continentes
+                          initialCenter: LatLng(28.0, -35.0),
+                          initialZoom: 2.2,
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate:
+                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'com.agrotrade.direct',
+                          ),
+                          PolylineLayer(
+                            polylines: [
+                              Polyline(
+                                points: routePoints,
+                                color: AppColors.gold,
+                                strokeWidth: 3.5,
+                              ),
+                            ],
+                          ),
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: _buenaventura,
+                                width: 80,
+                                height: 60,
+                                child: const _MapMarkerWidget(
+                                  label: 'Buenaventura',
+                                  color: AppColors.gold,
+                                  icon: Icons.location_on,
+                                ),
+                              ),
+                              Marker(
+                                point: _hamburgo,
+                                width: 80,
+                                height: 60,
+                                child: const _MapMarkerWidget(
+                                  label: 'Hamburgo',
+                                  color: AppColors.statusActive,
+                                  icon: Icons.flag,
+                                ),
+                              ),
+                              if (_showConsumptionPoints)
+                                ..._consumptionPoints.map(
+                                  (point) => Marker(
+                                    point: LatLng(
+                                      point.latitude,
+                                      point.longitude,
+                                    ),
+                                    width: 110,
+                                    height: 72,
+                                    child: GestureDetector(
+                                      onTap: () =>
+                                          _showConsumptionPointDetails(point),
+                                      child: _MapMarkerWidget(
+                                        label: point.cityName,
+                                        color: AppColors.statusTransit,
+                                        icon: Icons.local_cafe,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ],
                       ),
-
-                      // Marcadores de origen (Buenaventura) y destino (Hamburgo)
-                      MarkerLayer(
-                        markers: [
-                          // Origen: Colombia
-                          Marker(
-                            point: _buenaventura,
-                            width: 80,
-                            height: 60,
-                            child: const _MapMarkerWidget(
-                              label: 'Buenaventura',
-                              color: AppColors.gold,
-                              icon: Icons.location_on,
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: Material(
+                          color: _showConsumptionPoints
+                              ? AppColors.gold
+                              : AppColors.surface,
+                          elevation: 3,
+                          borderRadius: BorderRadius.circular(24),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(24),
+                            onTap: _isLoadingConsumptionPoints
+                                ? null
+                                : _toggleConsumptionLayer,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 9,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.layers,
+                                    size: 18,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Text(
+                                    'Consumo',
+                                    style: TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  if (_isLoadingConsumptionPoints) ...[
+                                    const SizedBox(width: 8),
+                                    const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ),
                           ),
-                          // Destino: Europa
-                          Marker(
-                            point: _hamburgo,
-                            width: 80,
-                            height: 60,
-                            child: const _MapMarkerWidget(
-                              label: 'Hamburgo',
-                              color: AppColors.statusActive,
-                              icon: Icons.flag,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
+                      if (_showConsumptionPoints &&
+                          !_isLoadingConsumptionPoints &&
+                          (_consumptionPointsError != null ||
+                              _consumptionPoints.isEmpty))
+                        Positioned(
+                          left: 10,
+                          right: 10,
+                          bottom: 10,
+                          child: Material(
+                            color: AppColors.surface,
+                            elevation: 3,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: Text(
+                                _consumptionPointsError ??
+                                    'No hay puntos de consumo disponibles.',
+                                style: TextStyle(
+                                  color: _consumptionPointsError == null
+                                      ? AppColors.textSecondary
+                                      : Colors.red,
+                                  fontSize: 12,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -213,6 +364,94 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ConsumptionPointDetailsSheet extends StatelessWidget {
+  const _ConsumptionPointDetailsSheet({required this.point});
+
+  final CoffeeConsumptionPoint point;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 38,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              '${point.cityName}, ${point.country}',
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _ConsumptionDetail(
+              label: 'Consumo anual',
+              value: '${point.annualConsumptionTons} toneladas',
+            ),
+            const SizedBox(height: 10),
+            _ConsumptionDetail(
+              label: 'Grado de importación principal',
+              value: point.mainImportGrade,
+            ),
+            if (point.description.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _ConsumptionDetail(
+                label: 'Descripción',
+                value: point.description,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ConsumptionDetail extends StatelessWidget {
+  const _ConsumptionDetail({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value.isEmpty ? 'No especificado' : value,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 14,
+          ),
+        ),
+      ],
     );
   }
 }
