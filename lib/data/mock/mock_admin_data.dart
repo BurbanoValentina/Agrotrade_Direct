@@ -55,6 +55,23 @@ final List<AdminEmployee> mockEmployees = [
     createdAt: DateTime(2025, 5, 22),
     createdBy: 'Valentina Burbano',
   ),
+  AdminEmployee(
+    id: 'emp-004',
+    name: 'Marcela Torres',
+    email: 'marcela.torres@agrotrade.co',
+    password: 'Gerente123*',
+    permissions: const [
+      AdminPermission.dashboard,
+      AdminPermission.reports,
+      AdminPermission.security,
+      AdminPermission.negotiationManagement,
+    ],
+    isSuperAdmin: false,
+    isManager: true,
+    isActive: true,
+    createdAt: DateTime(2025, 6, 1),
+    createdBy: 'Valentina Burbano',
+  ),
 ];
 
 // ─── Usuarios registrados en la plataforma ────────────────────────────

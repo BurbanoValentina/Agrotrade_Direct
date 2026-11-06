@@ -30,13 +30,50 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isLoggedIn => _currentUser != null;
 
-  /// REQ-04: Inicia sesión y devuelve false si la autenticación falla.
-  Future<bool> login(String email, String password) {
+  /// REQ-04: Ejecuta el inicio de sesión contra el repositorio de datos.
+  /// Retorna `true` si la autenticación fue exitosa o `false` si falló.
+  Future<bool> login(String email, String password, {UserRole? preferredRole}) async {
+    final cleanEmail = email.trim().toLowerCase();
+    // Credencial dual demo para pruebas y cambios de rol (exportador o importador)
+    if ((cleanEmail == 'expo/impo@gmail.com' || cleanEmail == 'expo@gmail.com' || cleanEmail == 'impo@gmail.com') &&
+        password == 'admin12345') {
+      _currentUser = AppUser(
+        id: 'demo-expo-impo-user',
+        name: 'Usuario Comercial (Expo/Impo)',
+        email: 'expo/impo@gmail.com',
+        role: preferredRole ?? UserRole.exportador,
+        companyName: 'AgroComercio Directo S.A.S.',
+        country: 'Colombia',
+      );
+      _errorMessage = null;
+      notifyListeners();
+      return true;
+    }
+
     return _run(
       () => _repository.login(email: email, password: password),
       fallbackError: 'No pudimos iniciar sesión. Intenta de nuevo.',
     );
   }
+
+  /// Permite alternar o asignar el rol del usuario actual (Exportador / Importador)
+  void setRole(UserRole role) {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(role: role);
+      notifyListeners();
+    }
+  }
+
+  /// Alterna el rol entre Exportador e Importador para pruebas de QA (REQ-29).
+  void toggleRole() {
+    if (_currentUser != null) {
+      final next = _currentUser!.role == UserRole.exportador
+          ? UserRole.importador
+          : UserRole.exportador;
+      setRole(next);
+    }
+  }
+
 
   /// REQ-02 / REQ-03: Registra un nuevo usuario en la plataforma.
   Future<bool> register({

@@ -114,25 +114,24 @@ void validatePurchaseRequestInput({
   }
 }
 
-/// Implementación en memoria con datos de ejemplo y caché local para modo offline (REQ-27).
+/// Implementación en memoria con datos de ejemplo para pruebas offline.
 ///
 /// Replica las reglas de la BD (migraciones 20260925040000_purchase_request_rules
 /// y 20260926000000_negotiation_flow). Como no hay login real, las acciones se
 /// hacen en nombre de [currentUserId]: por defecto el importador demo; en las
 /// pruebas se cambia a [demoSellerId] para actuar como exportador.
+/// REQ-27: Incluye caché local para modo offline.
 class MockOfferRepository implements OfferRepository {
-  MockOfferRepository({
-    this.currentUserId = demoBuyerId,
-    LocalStorageService? storageService,
-  }) : _storageService = storageService ?? LocalStorageService();
+  MockOfferRepository({this.currentUserId = demoBuyerId, LocalStorageService? storageService})
+      : _storageService = storageService ?? LocalStorageService();
+
+  final LocalStorageService _storageService;
 
   static const demoBuyerId = 'demo-buyer';
   static const demoSellerId = 'demo-seller';
 
   /// Usuario en cuyo nombre se ejecutan las acciones.
   String currentUserId;
-
-  final LocalStorageService _storageService;
 
   final List<CropOffer> _offers = mockOffers.map(_withDemoSeller).toList();
   final List<PurchaseRequest> _negotiations = [];
@@ -227,17 +226,19 @@ class MockOfferRepository implements OfferRepository {
   Future<List<CropOffer>> fetchOffers() async {
     await Future.delayed(const Duration(milliseconds: 400));
     try {
-      final offers = List<CropOffer>.from(_offers);
-      await _storageService.cacheOffers(offers);
-      return offers;
+      // REQ-27: Guardamos automáticamente una copia en la memoria del teléfono
+      await _storageService.cacheOffers(_offers);
+      return List<CropOffer>.from(_offers);
     } catch (e) {
+      // REQ-27: Si falla, devolvemos lo que esté guardado en caché
       final cached = await _storageService.getCachedOffers();
       if (cached.isNotEmpty) {
         return cached;
       }
-      rethrow;
+      return List<CropOffer>.from(_offers);
     }
   }
+
 
   @override
   Future<void> sendCounterOffer({
@@ -406,8 +407,9 @@ class MockOfferRepository implements OfferRepository {
     neg = _save(currentUserId == neg.buyerId
         ? neg.copyWith(buyerConfirmedAt: now, updatedAt: now)
         : neg.copyWith(sellerConfirmedAt: now, updatedAt: now));
-    if (neg.buyerConfirmedAt == null || neg.sellerConfirmedAt == null)
+    if (neg.buyerConfirmedAt == null || neg.sellerConfirmedAt == null) {
       return neg;
+    }
 
     // Segunda confirmación: se cierra el trato.
     final offer = _offer(neg.offerId)!;

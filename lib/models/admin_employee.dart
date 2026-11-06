@@ -29,10 +29,12 @@ class AdminEmployee {
     required this.createdBy,
   });
 
+  /// Rol Gerente: solo consulta (Dashboard, Reportes), sin permisos de mutación.
   /// Un Super Admin tiene todos los permisos sin importar su lista.
   bool hasPermission(AdminPermission permission) {
     if (isSuperAdmin) return true;
     if (isManager) {
+      // El gerente solo puede consultar Dashboard y Reportes.
       return permission == AdminPermission.dashboard ||
           permission == AdminPermission.reports;
     }

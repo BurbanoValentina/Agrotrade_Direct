@@ -110,23 +110,6 @@ class MarketProvider extends ChangeNotifier {
     }).toList();
   }
 
-  /// Carga la lista inicial de ofertas desde el repositorio
-  Future<void> loadOffers() async {
-    _setLoading(true);
-    _loadError = null;
-    try {
-      _offers = await _repository.fetchOffers();
-      _errorMessage = null;
-    } on RepositoryException catch (e) {
-      _loadError = e.message;
-      _errorMessage = e.message;
-    } catch (e) {
-      _loadError = 'No pudimos cargar las ofertas del mercado.';
-      _errorMessage = 'No pudimos cargar las ofertas del mercado.';
-    } finally {
-      _setLoading(false);
-    }
-  }
 
   /// REQ-06 a REQ-10: Publica una nueva oferta en el mercado
   Future<bool> addOffer(CropOffer offer) async {
@@ -139,37 +122,7 @@ class MarketProvider extends ChangeNotifier {
     }
   }
 
-  /// REQ-12: Actualiza la categoría del filtro rápido
-  void setFilter(MarketFilter filter) {
-    _filterOptions = _filterOptions.copyWith(category: filter);
-    notifyListeners();
-  }
-
-  /// REQ-12: Aplica opciones de filtro avanzadas (precio, volumen, destino)
-  void setAdvancedFilterOptions(MarketFilterOptions options) {
-    _filterOptions = options;
-    notifyListeners();
-  }
-
-  /// REQ-12: Restablece todos los filtros a sus valores predeterminados
-  void resetFilters() {
-    _filterOptions = const MarketFilterOptions();
-    _searchQuery = '';
-    notifyListeners();
-  }
-
-  /// REQ-11: Actualiza la consulta de búsqueda
-  void setQuery(String query) {
-    _searchQuery = query;
-    notifyListeners();
-  }
-
-  void _setLoading(bool value) {
-    _isLoading = value;
-    notifyListeners();
-  }
-
-  /// REQ-14: envía una solicitud de compra. Devuelve `true` si se envió; si no,
+  /// REQ-14 / REQ-16: envía una solicitud de compra. Devuelve `true` si se envió; si no,
   /// el motivo queda en [lastError] para mostrarlo al usuario.
   Future<bool> sendCounterOffer(
     String offerId,
@@ -185,10 +138,80 @@ class MarketProvider extends ChangeNotifier {
         notes: notes,
       );
       _lastError = null;
+      // Actualizar estado local de la oferta
+      final index = _offers.indexWhere((o) => o.id == offerId);
+      if (index != -1) {
+        final old = _offers[index];
+        _offers[index] = CropOffer(
+          id: old.id,
+          cropType: old.cropType,
+          variety: old.variety,
+          originRegion: old.originRegion,
+          originCountry: old.originCountry,
+          askPricePerMt: proposedPrice,
+          volumeMt: old.volumeMt,
+          destinationCountry: old.destinationCountry,
+          certifications: old.certifications,
+          sellerName: old.sellerName,
+          sellerRating: old.sellerRating,
+          sellerTrades: old.sellerTrades,
+          status: OfferStatus.negociando,
+          postedAt: old.postedAt,
+        );
+        notifyListeners();
+      }
       return true;
     } on RepositoryException catch (e) {
       _lastError = e.message;
       return false;
+    } catch (e) {
+      return false;
     }
   }
+
+
+  /// REQ-12: Actualiza la categoría del filtro rápido
+  void setFilter(MarketFilter filter) {
+    _filterOptions = _filterOptions.copyWith(category: filter);
+    notifyListeners();
+  }
+
+  /// REQ-12: Aplica opciones de filtro avanzadas (precio, volumen, destino)
+  void setAdvancedFilterOptions(MarketFilterOptions options) {
+    _filterOptions = options;
+    notifyListeners();
+  }
+
+  /// Recarga las ofertas desde el repositorio.
+  Future<void> loadOffers() async {
+    _isLoading = true;
+    _loadError = null;
+    notifyListeners();
+    try {
+      _offers = await _repository.fetchOffers();
+      _errorMessage = null;
+    } on RepositoryException catch (e) {
+      _loadError = e.message;
+    } catch (e) {
+      _errorMessage = 'No pudimos cargar las ofertas del mercado.';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+
+  /// REQ-12: Restablece todos los filtros a sus valores predeterminados
+  void resetFilters() {
+    _filterOptions = const MarketFilterOptions();
+    _searchQuery = '';
+    notifyListeners();
+  }
+
+  /// REQ-11: Actualiza la consulta de búsqueda
+  void setQuery(String query) {
+    _searchQuery = query;
+    notifyListeners();
+  }
+
 }

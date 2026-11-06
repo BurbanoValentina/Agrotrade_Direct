@@ -34,8 +34,7 @@ class AdminProvider extends ChangeNotifier {
   }
 
   bool get isSuperAdmin => _currentEmployee?.isSuperAdmin ?? false;
-  bool get isManager =>
-      !isSuperAdmin && (_currentEmployee?.isManager ?? false);
+  bool get isManager => _currentEmployee?.isManager ?? false;
 
   // ── Datos cargados ────────────────────────────────────────────────
   List<AdminEmployee> _employees = [];
