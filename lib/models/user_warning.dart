@@ -70,6 +70,7 @@ class StaffInvitation {
     required this.email,
     required this.permissions,
     required this.isSuperAdmin,
+    this.isManager = false,
   });
 
   final String userId;
@@ -77,12 +78,16 @@ class StaffInvitation {
   final List<String> permissions;
   final bool isSuperAdmin;
 
+  /// Gerente de solo consulta (REQ-46).
+  final bool isManager;
+
   factory StaffInvitation.fromJson(Map<String, dynamic> json) {
     return StaffInvitation(
       userId: json['user_id'] as String,
       email: json['email'] as String,
       permissions: (json['permissions'] as List<dynamic>).cast<String>(),
       isSuperAdmin: json['is_super_admin'] as bool? ?? false,
+      isManager: json['is_manager'] as bool? ?? false,
     );
   }
 }

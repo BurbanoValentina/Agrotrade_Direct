@@ -80,6 +80,38 @@ describe("create_staff", () => {
   });
 });
 
+describe("gerente (REQ-46)", () => {
+  const manager: StaffRow = { user_id: "g", is_super_admin: false, permissions: [], is_active: true, is_manager: true };
+
+  test("se puede crear un gerente sin permisos de acción", () => {
+    const input = validateCreateStaff(hrAdmin, { email: "gerente@b.com", is_manager: true });
+    assert.equal(input.isManager, true);
+    assert.deepEqual(input.permissions, []);
+  });
+
+  test("un gerente no puede llevar permisos ni ser super admin", () => {
+    rejects(() => validateCreateStaff(superAdmin, { email: "g@b.com", is_manager: true, permissions: ["dashboard"] }), 400, "solo consulta");
+    rejects(() => validateCreateStaff(superAdmin, { email: "g@b.com", is_manager: true, is_super_admin: true }), 400, "solo consulta");
+  });
+
+  test("un gerente no puede crear empleados ni borrar cuentas", () => {
+    rejects(() => validateCreateStaff(manager, { email: "a@b.com", permissions: ["dashboard"] }), 403, "employeeManagement");
+    rejects(
+      () => validateDeleteUser({ callerId: "g", caller: manager, targetId: TARGET, targetStaff: null, confirmedDeals: 0 }),
+      403,
+      "userManagement",
+    );
+  });
+
+  test("aunque una fila de gerente traiga permisos, no cuentan", () => {
+    rejects(
+      () => validateCreateStaff({ ...manager, permissions: ["employeeManagement"] }, { email: "a@b.com", permissions: ["dashboard"] }),
+      403,
+      "employeeManagement",
+    );
+  });
+});
+
 describe("delete_user", () => {
   const base = { callerId: "hr", caller: hrAdmin, targetId: TARGET, targetStaff: null, confirmedDeals: 0 };
 
