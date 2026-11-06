@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/mock/mock_admin_data.dart';
 import '../../models/user_role.dart';
 import '../../providers/admin_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/theme_toggle_button.dart';
+import '../../widgets/language_toggle_button.dart';
 import '../admin/admin_login_screen.dart';
 import '../home/home_shell.dart';
 import 'register_screen.dart';
@@ -51,7 +53,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // 0. Credencial dual demo para Exportador / Importador
     final cleanEmail = email.toLowerCase();
-    if ((cleanEmail == 'expo/impo@gmail.com' || cleanEmail == 'expo@gmail.com' || cleanEmail == 'impo@gmail.com') &&
+    if ((cleanEmail == 'expo/impo@gmail.com' ||
+            cleanEmail == 'expo@gmail.com' ||
+            cleanEmail == 'impo@gmail.com') &&
         password == 'admin12345') {
       final auth = context.read<AuthProvider>();
       await auth.login(email, password, preferredRole: _selectedRole);
@@ -163,7 +167,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFF3B82F6).withValues(alpha: colors.isDark ? 0.14 : 0.06),
+                    const Color(0xFF3B82F6)
+                        .withValues(alpha: colors.isDark ? 0.14 : 0.06),
                     Colors.transparent,
                   ],
                 ),
@@ -175,17 +180,20 @@ class _LoginScreenState extends State<LoginScreen> {
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: isWide ? 960 : 460),
                   child: Container(
                     decoration: BoxDecoration(
                       color: colors.surface,
                       borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: colors.border.withValues(alpha: 0.9)),
+                      border: Border.all(
+                          color: colors.border.withValues(alpha: 0.9)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: colors.isDark ? 0.35 : 0.06),
+                          color: Colors.black
+                              .withValues(alpha: colors.isDark ? 0.35 : 0.06),
                           blurRadius: 32,
                           offset: const Offset(0, 12),
                         ),
@@ -215,12 +223,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       _Logo(onAdminSecretTap: () {
                                         Navigator.of(context).push(
-                                          MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+                                          MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const AdminLoginScreen()),
                                         );
                                       }),
                                       const SizedBox(height: 28),
@@ -262,14 +273,16 @@ class _LoginScreenState extends State<LoginScreen> {
                               Expanded(
                                 flex: 5,
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 36),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 36, vertical: 36),
                                   child: _buildLoginForm(auth, colors),
                                 ),
                               ),
                             ],
                           )
                         : Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 28),
                             child: _buildLoginForm(auth, colors),
                           ),
                   ),
@@ -282,7 +295,8 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildFeatureItem(AppThemeColors colors, IconData icon, String title, String desc) {
+  Widget _buildFeatureItem(
+      AppThemeColors colors, IconData icon, String title, String desc) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -310,7 +324,8 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 2),
               Text(
                 desc,
-                style: TextStyle(color: colors.textSecondary, fontSize: 12, height: 1.3),
+                style: TextStyle(
+                    color: colors.textSecondary, fontSize: 12, height: 1.3),
               ),
             ],
           ),
@@ -320,14 +335,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildLoginForm(AuthProvider auth, AppThemeColors colors) {
+    final loc = context.l10n;
+
     return Form(
       key: _formKey,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               _Logo(
                 isCompact: true,
@@ -337,13 +355,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   );
                 },
               ),
-              const ThemeToggleButton(compact: true),
+              const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  LanguageToggleButton(compact: true),
+                  ThemeToggleButton(compact: true),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 20),
 
           Text(
-            '¡Bienvenido de vuelta!',
+            loc.translate('login_welcome'),
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
@@ -353,7 +377,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Ingresa a tu cuenta para gestionar operaciones y mercado.',
+            loc.translate('login_subtitle'),
             style: TextStyle(
               color: colors.textSecondary,
               fontSize: 13,
@@ -373,12 +397,15 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => setState(() => _selectedRole = UserRole.exportador),
+                    onTap: () =>
+                        setState(() => _selectedRole = UserRole.exportador),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(vertical: 9),
                       decoration: BoxDecoration(
-                        color: _selectedRole == UserRole.exportador ? colors.gold : Colors.transparent,
+                        color: _selectedRole == UserRole.exportador
+                            ? colors.gold
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: _selectedRole == UserRole.exportador
                             ? [
@@ -397,10 +424,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           const Text('🇨🇴', style: TextStyle(fontSize: 13)),
                           const SizedBox(width: 6),
                           Text(
-                            'Exportador',
+                            loc.translate('exporter'),
                             style: TextStyle(
                               color: _selectedRole == UserRole.exportador
-                                  ? (colors.isDark ? Colors.black : Colors.white)
+                                  ? (colors.isDark
+                                      ? Colors.black
+                                      : Colors.white)
                                   : colors.textSecondary,
                               fontWeight: FontWeight.w800,
                               fontSize: 12,
@@ -413,17 +442,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => setState(() => _selectedRole = UserRole.importador),
+                    onTap: () =>
+                        setState(() => _selectedRole = UserRole.importador),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(vertical: 9),
                       decoration: BoxDecoration(
-                        color: _selectedRole == UserRole.importador ? const Color(0xFF3B82F6) : Colors.transparent,
+                        color: _selectedRole == UserRole.importador
+                            ? const Color(0xFF3B82F6)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: _selectedRole == UserRole.importador
                             ? [
                                 BoxShadow(
-                                  color: const Color(0xFF3B82F6).withValues(alpha: 0.25),
+                                  color: const Color(0xFF3B82F6)
+                                      .withValues(alpha: 0.25),
                                   blurRadius: 6,
                                   offset: const Offset(0, 2),
                                 ),
@@ -437,7 +470,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           const Text('🇪🇺', style: TextStyle(fontSize: 13)),
                           const SizedBox(width: 6),
                           Text(
-                            'Importador',
+                            loc.translate('importer'),
                             style: TextStyle(
                               color: _selectedRole == UserRole.importador
                                   ? Colors.white
@@ -466,8 +499,9 @@ class _LoginScreenState extends State<LoginScreen> {
             style: TextStyle(color: colors.textPrimary, fontSize: 14),
             decoration: InputDecoration(
               hintText: 'correo@ejemplo.com',
-              labelText: 'Correo electrónico',
-              prefixIcon: Icon(Icons.mail_outline_rounded, color: colors.gold, size: 20),
+              labelText: loc.translate('email'),
+              prefixIcon: Icon(Icons.mail_outline_rounded,
+                  color: colors.gold, size: 20),
             ),
             validator: (v) {
               if (v == null || v.trim().isEmpty) {
@@ -476,7 +510,7 @@ class _LoginScreenState extends State<LoginScreen> {
               final val = v.trim().toLowerCase();
               if (val == 'expo/impo@gmail.com') return null;
               if (!v.contains('@') || !v.contains('.')) {
-                return 'Correo electrónico inválido';
+                return loc.translate('invalid_email');
               }
               return null;
             },
@@ -490,19 +524,25 @@ class _LoginScreenState extends State<LoginScreen> {
             autofillHints: const [AutofillHints.password],
             style: TextStyle(color: colors.textPrimary, fontSize: 14),
             decoration: InputDecoration(
-              hintText: 'Tu contraseña',
-              labelText: 'Contraseña',
-              prefixIcon: Icon(Icons.lock_outline_rounded, color: colors.gold, size: 20),
+              hintText: loc.translate('password_hint'),
+              labelText: loc.translate('password'),
+              prefixIcon: Icon(Icons.lock_outline_rounded,
+                  color: colors.gold, size: 20),
               suffixIcon: IconButton(
                 icon: Icon(
-                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   color: colors.textMuted,
                   size: 18,
                 ),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
             ),
-            validator: (v) => (v == null || v.length < 4) ? 'Mínimo 4 caracteres' : null,
+            validator: (v) => (v == null || v.length < 4)
+                ? loc.translate('password_minimum')
+                : null,
           ),
           const SizedBox(height: 20),
 
@@ -513,7 +553,8 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: auth.isLoading ? null : _submit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: colors.gold,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
                 elevation: 3,
               ),
               child: auth.isLoading
@@ -535,7 +576,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Iniciar sesión',
+                          loc.translate('login_submit'),
                           style: TextStyle(
                             color: colors.isDark ? Colors.black : Colors.white,
                             fontWeight: FontWeight.w800,
@@ -554,7 +595,7 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
-                '¿Aún no tienes cuenta? ',
+                '${loc.translate('register_prompt')} ',
                 style: TextStyle(color: colors.textSecondary, fontSize: 13),
               ),
               GestureDetector(
@@ -564,7 +605,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   );
                 },
                 child: Text(
-                  'Crear cuenta',
+                  loc.translate('register_link'),
                   style: TextStyle(
                     color: colors.gold,
                     fontWeight: FontWeight.w800,

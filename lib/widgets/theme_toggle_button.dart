@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/localization/app_localizations.dart';
 import '../core/theme/app_theme.dart';
 import '../providers/theme_provider.dart';
 
@@ -24,9 +25,9 @@ class ThemeToggleButton extends StatelessWidget {
     final isDark = themeProvider.isDarkMode;
     final colors = context.colors;
 
-    final tooltip = isDark
-        ? 'Cambiar a modo claro (pasteles)'
-        : 'Cambiar a modo oscuro (cálido)';
+    final tooltip = context.l10n.translate(
+      isDark ? 'theme_switch_to_light' : 'theme_switch_to_dark',
+    );
 
     if (compact) {
       return Tooltip(
@@ -98,7 +99,9 @@ class ThemeToggleButton extends StatelessWidget {
                 if (showLabel) ...[
                   const SizedBox(width: 8),
                   Text(
-                    isDark ? 'Modo Claro' : 'Modo Oscuro',
+                    context.l10n.translate(
+                      isDark ? 'theme_light' : 'theme_dark',
+                    ),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,

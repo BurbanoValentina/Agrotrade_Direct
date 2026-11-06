@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/admin_provider.dart';
 import '../../widgets/theme_toggle_button.dart';
+import '../../widgets/language_toggle_button.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -73,6 +74,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: const [
+          LanguageToggleButton(compact: true),
           ThemeToggleButton(compact: true),
           SizedBox(width: 12),
         ],
@@ -107,7 +109,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    Colors.purpleAccent.withValues(alpha: colors.isDark ? 0.12 : 0.05),
+                    Colors.purpleAccent
+                        .withValues(alpha: colors.isDark ? 0.12 : 0.05),
                     Colors.transparent,
                   ],
                 ),
@@ -121,14 +124,17 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 34),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 34),
                   decoration: BoxDecoration(
                     color: colors.surface,
                     borderRadius: BorderRadius.circular(28),
-                    border: Border.all(color: colors.border.withValues(alpha: 0.9)),
+                    border:
+                        Border.all(color: colors.border.withValues(alpha: 0.9)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: colors.isDark ? 0.35 : 0.06),
+                        color: Colors.black
+                            .withValues(alpha: colors.isDark ? 0.35 : 0.06),
                         blurRadius: 30,
                         offset: const Offset(0, 10),
                       ),
@@ -162,7 +168,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                             child: Icon(
                               Icons.admin_panel_settings_rounded,
                               size: 38,
-                              color: colors.isDark ? Colors.black : Colors.white,
+                              color:
+                                  colors.isDark ? Colors.black : Colors.white,
                             ),
                           ),
                         ),
@@ -190,182 +197,189 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         const SizedBox(height: 24),
                         TextFormField(
                           controller: _emailController,
-                          style: TextStyle(color: colors.textPrimary, fontSize: 14),
+                          style: TextStyle(
+                              color: colors.textPrimary, fontSize: 14),
                           decoration: InputDecoration(
                             labelText: 'Correo Institucional',
                             hintText: 'ejemplo@agrotrade.co',
-                            prefixIcon: Icon(Icons.mail_outline_rounded, color: colors.gold, size: 20),
+                            prefixIcon: Icon(Icons.mail_outline_rounded,
+                                color: colors.gold, size: 20),
                           ),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) =>
-                          value == null || value.isEmpty ? 'Requerido' : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: _passwordController,
-                      style: TextStyle(color: colors.textPrimary, fontSize: 14),
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        labelText: 'Contraseña',
-                        hintText: '••••••••',
-                        prefixIcon: Icon(Icons.lock_outline_rounded,
-                            color: colors.textMuted, size: 20),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            color: colors.textMuted,
-                            size: 18,
-                          ),
-                          onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword),
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) => value == null || value.isEmpty
+                              ? 'Requerido'
+                              : null,
                         ),
-                      ),
-                      validator: (value) =>
-                          value == null || value.isEmpty ? 'Requerido' : null,
-                    ),
-                    const SizedBox(height: 22),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _login,
-                      child: _isLoading
-                          ? SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                color:
-                                    colors.isDark ? Colors.black : Colors.white,
-                                strokeWidth: 2,
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _passwordController,
+                          style: TextStyle(
+                              color: colors.textPrimary, fontSize: 14),
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: 'Contraseña',
+                            hintText: '••••••••',
+                            prefixIcon: Icon(Icons.lock_outline_rounded,
+                                color: colors.textMuted, size: 20),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: colors.textMuted,
+                                size: 18,
                               ),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.verified_user_rounded,
-                                    size: 18,
-                                    color: colors.isDark
-                                        ? Colors.black
-                                        : Colors.white),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Acceder al Panel',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
+                              onPressed: () => setState(
+                                  () => _obscurePassword = !_obscurePassword),
+                            ),
+                          ),
+                          validator: (value) => value == null || value.isEmpty
+                              ? 'Requerido'
+                              : null,
+                        ),
+                        const SizedBox(height: 22),
+                        ElevatedButton(
+                          onPressed: _isLoading ? null : _login,
+                          child: _isLoading
+                              ? SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
                                     color: colors.isDark
                                         ? Colors.black
                                         : Colors.white,
+                                    strokeWidth: 2,
                                   ),
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.verified_user_rounded,
+                                        size: 18,
+                                        color: colors.isDark
+                                            ? Colors.black
+                                            : Colors.white),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Acceder al Panel',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: colors.isDark
+                                            ? Colors.black
+                                            : Colors.white,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                    ),
-                    const SizedBox(height: 10),
-                    Center(
-                      child: TextButton.icon(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: Icon(Icons.arrow_back_rounded,
-                            size: 16, color: colors.gold),
-                        label: Text(
-                          'Volver al inicio',
-                          style: TextStyle(
-                            color: colors.gold,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(child: Divider(color: colors.border)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: colors.surfaceAlt,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              'ACCESO RÁPIDO DE PRUEBA',
+                        const SizedBox(height: 10),
+                        Center(
+                          child: TextButton.icon(
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: Icon(Icons.arrow_back_rounded,
+                                size: 16, color: colors.gold),
+                            label: Text(
+                              'Volver al inicio',
                               style: TextStyle(
                                 color: colors.gold,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1.2,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
                               ),
                             ),
                           ),
                         ),
-                        Expanded(child: Divider(color: colors.border)),
+                        const SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: colors.border)),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 10),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: colors.surfaceAlt,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'ACCESO RÁPIDO DE PRUEBA',
+                                  style: TextStyle(
+                                    color: colors.gold,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(child: Divider(color: colors.border)),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        _QuickLoginButton(
+                          name: 'Valentina Burbano',
+                          role: 'Super Admin (Control Ilimitado Total)',
+                          email: 'valentinaburbano1406@gmail.com',
+                          badge: '👑 Total',
+                          icon: Icons.workspace_premium_rounded,
+                          color: colors.gold,
+                          onTap: () => _quickLogin(
+                            'valentinaburbano1406@gmail.com',
+                            'admin12345',
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _QuickLoginButton(
+                          name: 'Carlos Mendoza',
+                          role: 'Empleado (Dashboard, Usuarios, Seguridad)',
+                          email: 'carlos.mendoza@agrotrade.co',
+                          badge: '🛡️ Seguridad',
+                          color: Colors.blueAccent,
+                          icon: Icons.shield_rounded,
+                          onTap: () => _quickLogin(
+                            'carlos.mendoza@agrotrade.co',
+                            'Agr0#xK9m2',
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _QuickLoginButton(
+                          name: 'Laura Gómez',
+                          role: 'Empleada (Dashboard, Ofertas, Negociaciones)',
+                          email: 'laura.gomez@agrotrade.co',
+                          badge: '🌾 Operaciones',
+                          color: Colors.green,
+                          icon: Icons.storefront_rounded,
+                          onTap: () => _quickLogin(
+                            'laura.gomez@agrotrade.co',
+                            'Plt\$7nR4wQ',
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _QuickLoginButton(
+                          name: 'Marcela Torres',
+                          role: 'Gerente (Solo Consulta, sin acciones)',
+                          email: 'marcela.torres@agrotrade.co',
+                          badge: '📊 Consulta',
+                          color: Colors.purpleAccent,
+                          icon: Icons.analytics_outlined,
+                          onTap: () => _quickLogin(
+                            'marcela.torres@agrotrade.co',
+                            'Gerente123*',
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    _QuickLoginButton(
-                      name: 'Valentina Burbano',
-                      role: 'Super Admin (Control Ilimitado Total)',
-                      email: 'valentinaburbano1406@gmail.com',
-                      badge: '👑 Total',
-                      icon: Icons.workspace_premium_rounded,
-                      color: colors.gold,
-                      onTap: () => _quickLogin(
-                        'valentinaburbano1406@gmail.com',
-                        'admin12345',
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _QuickLoginButton(
-                      name: 'Carlos Mendoza',
-                      role: 'Empleado (Dashboard, Usuarios, Seguridad)',
-                      email: 'carlos.mendoza@agrotrade.co',
-                      badge: '🛡️ Seguridad',
-                      color: Colors.blueAccent,
-                      icon: Icons.shield_rounded,
-                      onTap: () => _quickLogin(
-                        'carlos.mendoza@agrotrade.co',
-                        'Agr0#xK9m2',
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _QuickLoginButton(
-                      name: 'Laura Gómez',
-                      role: 'Empleada (Dashboard, Ofertas, Negociaciones)',
-                      email: 'laura.gomez@agrotrade.co',
-                      badge: '🌾 Operaciones',
-                      color: Colors.green,
-                      icon: Icons.storefront_rounded,
-                      onTap: () => _quickLogin(
-                        'laura.gomez@agrotrade.co',
-                        'Plt\$7nR4wQ',
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _QuickLoginButton(
-                      name: 'Marcela Torres',
-                      role: 'Gerente (Solo Consulta, sin acciones)',
-                      email: 'marcela.torres@agrotrade.co',
-                      badge: '📊 Consulta',
-                      color: Colors.purpleAccent,
-                      icon: Icons.analytics_outlined,
-                      onTap: () => _quickLogin(
-                        'marcela.torres@agrotrade.co',
-                        'Gerente123*',
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
-    ],
-  ),
-);
-}
+    );
+  }
 }
 
 class _QuickLoginButton extends StatelessWidget {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import '../../core/localization/app_localizations.dart';
 import '../../core/services/consumption_point_repository.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/repositories/repository_exception.dart';
@@ -9,6 +10,7 @@ import '../../models/coffee_consumption_point.dart';
 import '../../models/user_role.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/role_toggle.dart';
+import '../../widgets/language_toggle_button.dart';
 import '../../widgets/theme_toggle_button.dart';
 
 /// Pantalla "Rutas y Logística Marítima Colombia — UE"
@@ -22,7 +24,8 @@ class TradeMapScreen extends StatefulWidget {
 
 class _TradeMapScreenState extends State<TradeMapScreen> {
   // Estado logístico simulado
-  final int _currentStep = 2; // 0: Inspección, 1: Despacho, 2: En Tránsito, 3: Aduana UE, 4: Entrega
+  final int _currentStep =
+      2; // 0: Inspección, 1: Despacho, 2: En Tránsito, 3: Aduana UE, 4: Entrega
 
   final LatLng _buenaventura = const LatLng(3.8801, -77.0312);
   final LatLng _hamburgo = const LatLng(53.5511, 9.9937);
@@ -54,9 +57,8 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _consumptionPointsError = error is RepositoryException
-            ? error.message
-            : error.toString();
+        _consumptionPointsError =
+            error is RepositoryException ? error.message : error.toString();
       });
     } finally {
       if (mounted) {
@@ -80,6 +82,7 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final loc = context.l10n;
     final user = context.watch<AuthProvider>().currentUser;
     final isExporter = user?.role == UserRole.exportador;
 
@@ -105,14 +108,15 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
                 color: colors.gold.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(Icons.directions_boat_rounded, color: colors.gold, size: 20),
+              child: Icon(Icons.directions_boat_rounded,
+                  color: colors.gold, size: 20),
             ),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Rutas y Trazabilidad Transatlántica',
+                  loc.translate('map_title'),
                   style: TextStyle(
                     color: colors.textPrimary,
                     fontSize: 16,
@@ -120,7 +124,7 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
                   ),
                 ),
                 Text(
-                  'Monitoreo geoespacial en tiempo real (Colombia 🇨🇴 ⇄ Unión Europea 🇪🇺)',
+                  loc.translate('map_subtitle'),
                   style: TextStyle(color: colors.textSecondary, fontSize: 11),
                 ),
               ],
@@ -128,6 +132,7 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
           ],
         ),
         actions: const [
+          LanguageToggleButton(compact: true),
           ThemeToggleButton(compact: true),
           SizedBox(width: 16),
         ],
@@ -139,7 +144,8 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
 
             if (isDesktop) {
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -223,14 +229,16 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: colors.statusActive.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: colors.statusActive.withValues(alpha: 0.4)),
+                  border: Border.all(
+                      color: colors.statusActive.withValues(alpha: 0.4)),
                 ),
                 child: Text(
-                  'EN TRÁNSITO MARÍTIMO',
+                  context.l10n.translate('shipment_in_transit'),
                   style: TextStyle(
                     color: colors.statusActive,
                     fontWeight: FontWeight.w800,
@@ -240,14 +248,17 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
                 ),
               ),
               Text(
-                'ETA: 28 Sep 2026',
-                style: TextStyle(color: colors.gold, fontWeight: FontWeight.w700, fontSize: 12),
+                context.l10n.translate('shipment_eta'),
+                style: TextStyle(
+                    color: colors.gold,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12),
               ),
             ],
           ),
           const SizedBox(height: 14),
           Text(
-            'Lote #EXP-2026-089 · Café Washed Arabica',
+            context.l10n.translate('shipment_title'),
             style: TextStyle(
               color: colors.textPrimary,
               fontWeight: FontWeight.w800,
@@ -258,9 +269,10 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
           const SizedBox(height: 4),
           Text(
             isExporter
-                ? 'Exportación despachada desde Buenaventura · Origen Huila · 22 Toneladas Métricas'
-                : 'Importación destinada a Hamburgo · Certificación Fair Trade y Rainforest Alliance',
-            style: TextStyle(color: colors.textSecondary, fontSize: 12, height: 1.35),
+                ? context.l10n.translate('shipment_exporter')
+                : context.l10n.translate('shipment_importer'),
+            style: TextStyle(
+                color: colors.textSecondary, fontSize: 12, height: 1.35),
           ),
           const SizedBox(height: 14),
           const Divider(height: 1),
@@ -268,8 +280,18 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _infoItem('Puerto Origen', 'Buenaventura (CO)', Icons.anchor_rounded, colors),
-              _infoItem('Puerto Destino', 'Hamburgo (DE)', Icons.flag_rounded, colors),
+              _infoItem(
+                context.l10n.translate('origin_port'),
+                'Buenaventura (CO)',
+                Icons.anchor_rounded,
+                colors,
+              ),
+              _infoItem(
+                context.l10n.translate('destination_port'),
+                'Hamburgo (DE)',
+                Icons.flag_rounded,
+                colors,
+              ),
             ],
           ),
         ],
@@ -277,7 +299,8 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
     );
   }
 
-  Widget _infoItem(String label, String value, IconData icon, AppThemeColors colors) {
+  Widget _infoItem(
+      String label, String value, IconData icon, AppThemeColors colors) {
     return Row(
       children: [
         Icon(icon, size: 16, color: colors.gold),
@@ -285,8 +308,16 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(color: colors.textMuted, fontSize: 10, fontWeight: FontWeight.w600)),
-            Text(value, style: TextStyle(color: colors.textPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
+            Text(label,
+                style: TextStyle(
+                    color: colors.textMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600)),
+            Text(value,
+                style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700)),
           ],
         ),
       ],
@@ -384,10 +415,11 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.satellite_alt_rounded, size: 14, color: colors.gold),
+                  Icon(Icons.satellite_alt_rounded,
+                      size: 14, color: colors.gold),
                   const SizedBox(width: 6),
                   Text(
-                    'Corredor Marítimo Atlántico',
+                    context.l10n.translate('atlantic_corridor'),
                     style: TextStyle(
                       color: colors.textPrimary,
                       fontWeight: FontWeight.w700,
@@ -425,7 +457,7 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Consumo',
+                        context.l10n.translate('consumption_layer'),
                         style: TextStyle(
                           color: colors.textPrimary,
                           fontSize: 12,
@@ -464,7 +496,7 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
                   padding: const EdgeInsets.all(8),
                   child: Text(
                     _consumptionPointsError ??
-                        'No hay puntos de consumo disponibles.',
+                        context.l10n.translate('consumption_empty'),
                     style: TextStyle(
                       color: _consumptionPointsError == null
                           ? colors.textSecondary
@@ -497,7 +529,7 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
               Icon(Icons.linear_scale_rounded, size: 18, color: colors.gold),
               const SizedBox(width: 8),
               Text(
-                'Línea de Tiempo Operativa y Aduanera',
+                context.l10n.translate('timeline_title'),
                 style: TextStyle(
                   color: colors.textPrimary,
                   fontWeight: FontWeight.w800,
@@ -508,37 +540,37 @@ class _TradeMapScreenState extends State<TradeMapScreen> {
           ),
           const SizedBox(height: 16),
           _TimelineStep(
-            title: '1. Verificación e Inspección en Origen',
-            subtitle: 'Finca Primavera (Huila) · Certificación de Calidad y No-Deforestación aprobada',
+            title: context.l10n.translate('timeline_step_1'),
+            subtitle: context.l10n.translate('timeline_step_1_subtitle'),
             date: '10 Sep 2026',
             isCompleted: _currentStep >= 0,
             isCurrent: _currentStep == 0,
           ),
           _TimelineStep(
-            title: '2. Despacho y Carga Marítima',
-            subtitle: 'Puerto de Buenaventura (CO) · Contenedor #CB-9941',
+            title: context.l10n.translate('timeline_step_2'),
+            subtitle: context.l10n.translate('timeline_step_2_subtitle'),
             date: '14 Sep 2026',
             isCompleted: _currentStep >= 1,
             isCurrent: _currentStep == 1,
           ),
           _TimelineStep(
-            title: '3. En Tránsito Marítimo',
-            subtitle: 'Trayecto Atlántico · ETA estimado: 28 Sep 2026',
-            date: 'En progreso',
+            title: context.l10n.translate('timeline_step_3'),
+            subtitle: context.l10n.translate('timeline_step_3_subtitle'),
+            date: context.l10n.translate('in_progress'),
             isCompleted: _currentStep >= 2,
             isCurrent: _currentStep == 2,
           ),
           _TimelineStep(
-            title: '4. Inspección de Aduana UE (EUTR)',
-            subtitle: 'Puerto de Hamburgo (DE) · Revisión de Fitosanitario y Trazabilidad',
-            date: 'Pendiente',
+            title: context.l10n.translate('timeline_step_4'),
+            subtitle: context.l10n.translate('timeline_step_4_subtitle'),
+            date: context.l10n.translate('pending'),
             isCompleted: _currentStep >= 3,
             isCurrent: _currentStep == 3,
           ),
           _TimelineStep(
-            title: '5. Entrega Confirmada a Importador',
-            subtitle: 'Almacén Central Hamburgo · Traspaso de título de propiedad',
-            date: 'Pendiente',
+            title: context.l10n.translate('timeline_step_5'),
+            subtitle: context.l10n.translate('timeline_step_5_subtitle'),
+            date: context.l10n.translate('pending'),
             isCompleted: _currentStep >= 4,
             isCurrent: _currentStep == 4,
             isLast: true,
@@ -586,20 +618,21 @@ class _ConsumptionPointDetailsSheet extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _ConsumptionDetail(
-              label: 'Consumo anual',
-              value: '${point.annualConsumptionTons} toneladas',
+              label: context.l10n.translate('annual_consumption'),
+              value:
+                  '${point.annualConsumptionTons} ${context.l10n.translate('tons')}',
               colors: colors,
             ),
             const SizedBox(height: 10),
             _ConsumptionDetail(
-              label: 'Grado de importación principal',
+              label: context.l10n.translate('main_import_grade'),
               value: point.mainImportGrade,
               colors: colors,
             ),
             if (point.description.isNotEmpty) ...[
               const SizedBox(height: 10),
               _ConsumptionDetail(
-                label: 'Descripción',
+                label: context.l10n.translate('description'),
                 value: point.description,
                 colors: colors,
               ),
@@ -627,10 +660,11 @@ class _ConsumptionDetail extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+        Text(label,
+            style: TextStyle(color: colors.textSecondary, fontSize: 12)),
         const SizedBox(height: 2),
         Text(
-          value.isEmpty ? 'No especificado' : value,
+          value.isEmpty ? context.l10n.translate('not_specified') : value,
           style: TextStyle(color: colors.textPrimary, fontSize: 14),
         ),
       ],

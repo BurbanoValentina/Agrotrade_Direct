@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/localization/app_localizations.dart';
 import '../../core/auth/admin_role_guard.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/admin_role_extension.dart';
@@ -7,6 +8,7 @@ import '../../models/admin_permission.dart';
 import '../../providers/admin_provider.dart';
 import '../../widgets/qa_testing_panel_dialog.dart';
 import '../../widgets/theme_toggle_button.dart';
+import '../../widgets/language_toggle_button.dart';
 import '../auth/login_screen.dart';
 import 'admin_dashboard_screen.dart';
 import 'admin_operations_screen.dart';
@@ -44,6 +46,7 @@ class _AdminShellState extends State<AdminShell> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final loc = context.l10n;
     final provider = context.watch<AdminProvider>();
     final employee = provider.currentEmployee;
 
@@ -65,10 +68,10 @@ class _AdminShellState extends State<AdminShell> {
         isManager ||
         provider.hasPermission(AdminPermission.dashboard)) {
       tabs.add(
-        const _AdminTabItem(
-          label: 'Dashboard',
+        _AdminTabItem(
+          label: loc.translate('admin_dashboard'),
           icon: Icons.dashboard_rounded,
-          screen: AdminRoleGuard(
+          screen: const AdminRoleGuard(
             allowedRoles: [
               AdminRole.superAdmin,
               AdminRole.manager,
@@ -86,10 +89,10 @@ class _AdminShellState extends State<AdminShell> {
         (!isManager &&
             provider.hasPermission(AdminPermission.userManagement))) {
       tabs.add(
-        const _AdminTabItem(
-          label: 'Usuarios',
+        _AdminTabItem(
+          label: loc.translate('admin_users'),
           icon: Icons.people_alt_rounded,
-          screen: AdminRoleGuard(
+          screen: const AdminRoleGuard(
             allowedRoles: [AdminRole.superAdmin, AdminRole.employee],
             requiredPermissions: [AdminPermission.userManagement],
             child: AdminUsersScreen(),
@@ -103,7 +106,7 @@ class _AdminShellState extends State<AdminShell> {
         (!isManager && provider.hasPermission(AdminPermission.security))) {
       tabs.add(
         _AdminTabItem(
-          label: 'Seguridad',
+          label: loc.translate('admin_security'),
           icon: Icons.shield_rounded,
           screen: const AdminRoleGuard(
             allowedRoles: [AdminRole.superAdmin, AdminRole.employee],
@@ -122,10 +125,10 @@ class _AdminShellState extends State<AdminShell> {
         provider.hasPermission(AdminPermission.negotiationManagement) ||
         provider.hasPermission(AdminPermission.reports)) {
       tabs.add(
-        const _AdminTabItem(
-          label: 'Mercado',
+        _AdminTabItem(
+          label: loc.translate('admin_market'),
           icon: Icons.storefront_rounded,
-          screen: AdminRoleGuard(
+          screen: const AdminRoleGuard(
             allowedRoles: [
               AdminRole.superAdmin,
               AdminRole.manager,
@@ -143,10 +146,10 @@ class _AdminShellState extends State<AdminShell> {
             (provider.hasPermission(AdminPermission.settings) ||
                 provider.hasPermission(AdminPermission.employeeManagement)))) {
       tabs.add(
-        const _AdminTabItem(
-          label: 'Ajustes',
+        _AdminTabItem(
+          label: loc.translate('admin_settings'),
           icon: Icons.settings_rounded,
-          screen: AdminRoleGuard(
+          screen: const AdminRoleGuard(
             allowedRoles: [AdminRole.superAdmin, AdminRole.employee],
             requiredPermissions: [
               AdminPermission.settings,
@@ -163,7 +166,7 @@ class _AdminShellState extends State<AdminShell> {
         backgroundColor: colors.background,
         appBar: AppBar(
           backgroundColor: colors.surface,
-          title: Text('Acceso Restringido',
+          title: Text(loc.translate('admin_restricted'),
               style: TextStyle(color: colors.textPrimary)),
           actions: [
             IconButton(
@@ -180,7 +183,7 @@ class _AdminShellState extends State<AdminShell> {
         ),
         body: Center(
           child: Text(
-            'No tienes permisos asignados. Contacta al Administrador.',
+            loc.translate('admin_no_permissions'),
             style: TextStyle(color: colors.textSecondary),
           ),
         ),
@@ -256,21 +259,29 @@ class _AdminShellState extends State<AdminShell> {
                             Icon(
                               employee.isSuperAdmin
                                   ? Icons.workspace_premium_rounded
-                                  : (employee.isManager ? Icons.analytics_outlined : Icons.shield_rounded),
+                                  : (employee.isManager
+                                      ? Icons.analytics_outlined
+                                      : Icons.shield_rounded),
                               size: 11,
                               color: employee.isSuperAdmin
                                   ? colors.gold
-                                  : (employee.isManager ? Colors.purpleAccent : colors.textSecondary),
+                                  : (employee.isManager
+                                      ? Colors.purpleAccent
+                                      : colors.textSecondary),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               employee.isSuperAdmin
                                   ? 'Super Admin'
-                                  : (employee.isManager ? 'Gerente (Consulta)' : 'Empleado'),
+                                  : (employee.isManager
+                                      ? 'Gerente (Consulta)'
+                                      : 'Empleado'),
                               style: TextStyle(
                                 color: employee.isSuperAdmin
                                     ? colors.gold
-                                    : (employee.isManager ? Colors.purpleAccent : colors.textPrimary),
+                                    : (employee.isManager
+                                        ? Colors.purpleAccent
+                                        : colors.textPrimary),
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -293,7 +304,7 @@ class _AdminShellState extends State<AdminShell> {
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        'Panel de Control Interno',
+                        loc.translate('admin_panel'),
                         style: TextStyle(
                           color: colors.textSecondary,
                           fontSize: 11,
@@ -318,16 +329,18 @@ class _AdminShellState extends State<AdminShell> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: colors.gold.withValues(alpha: 0.4)),
                 ),
-                child: Icon(Icons.bug_report_rounded, color: colors.gold, size: 18),
+                child: Icon(Icons.bug_report_rounded,
+                    color: colors.gold, size: 18),
               ),
               onPressed: () => QaTestingPanelDialog.show(context),
             ),
             const SizedBox(width: 4),
           ],
+          const LanguageToggleButton(compact: true),
           const ThemeToggleButton(compact: true),
           const SizedBox(width: 6),
           IconButton(
-            tooltip: 'Cerrar Sesión',
+            tooltip: loc.translate('admin_logout'),
             icon: Container(
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
