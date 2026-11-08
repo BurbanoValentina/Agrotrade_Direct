@@ -34,6 +34,10 @@ class DailyForecast {
   final double? minTempC;
   final double? precipitationMm;
   final double? maxWindKmh;
+  final double? relativeHumidity;
+  final double? uvIndex;
+  final double? feelsLikeC;
+  final String? conditionText;
 
   const DailyForecast({
     required this.date,
@@ -42,10 +46,14 @@ class DailyForecast {
     this.minTempC,
     this.precipitationMm,
     this.maxWindKmh,
+    this.relativeHumidity,
+    this.uvIndex,
+    this.feelsLikeC,
+    this.conditionText,
   });
 
   /// Descripción en español del código WMO de Open-Meteo.
-  String get description => describeWeatherCode(weatherCode);
+  String get description => conditionText ?? describeWeatherCode(weatherCode);
 }
 
 /// Códigos WMO usados por Open-Meteo (https://open-meteo.com/en/docs).

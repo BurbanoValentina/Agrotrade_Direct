@@ -339,7 +339,7 @@ class _QaTestingPanelDialogState extends State<QaTestingPanelDialog> {
                             title: const Text('Privacidad Comercial UI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
                             subtitle: const Text('Enmascara precios individuales en panel admin', style: TextStyle(fontSize: 11)),
                             value: _flagCommercialPrivacy,
-                            activeColor: colors.gold,
+                            activeThumbColor: colors.gold,
                             onChanged: (val) {
                               setState(() => _flagCommercialPrivacy = val);
                               _addLog('[Flag] Privacidad Comercial: $val');
@@ -351,7 +351,7 @@ class _QaTestingPanelDialogState extends State<QaTestingPanelDialog> {
                             title: const Text('Filtro Estricto de Certificaciones', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
                             subtitle: const Text('Valida sellos EU Orgánico y Rainforest', style: TextStyle(fontSize: 11)),
                             value: _flagStrictCertifications,
-                            activeColor: colors.gold,
+                            activeThumbColor: colors.gold,
                             onChanged: (val) {
                               setState(() => _flagStrictCertifications = val);
                               _addLog('[Flag] Certificaciones estrictas: $val');
@@ -363,7 +363,7 @@ class _QaTestingPanelDialogState extends State<QaTestingPanelDialog> {
                             title: const Text('Simular Latencia de Red (Mock Latency)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
                             subtitle: const Text('Introduce retardo de 800ms en repositorios', style: TextStyle(fontSize: 11)),
                             value: _flagSimulateSlowNetwork,
-                            activeColor: colors.gold,
+                            activeThumbColor: colors.gold,
                             onChanged: (val) {
                               setState(() => _flagSimulateSlowNetwork = val);
                               _addLog('[Flag] Latencia de red: $val');

@@ -370,7 +370,7 @@ void main() {
     });
 
     testWidgets(
-        'Enlace visible de panel interno en LoginScreen abre AdminLoginScreen',
+        'LoginScreen no expone el acceso interno a usuarios finales',
         (tester) async {
       final adminRepo = MockAdminRepository();
       final authRepo = MockAuthRepository();
@@ -379,14 +379,8 @@ void main() {
           .pumpWidget(_buildTestApp(adminRepo: adminRepo, authRepo: authRepo));
       await tester.pumpAndSettle();
 
-      final internalLink = find.text('🔒 Acceso Empleados / Panel Interno');
-      expect(internalLink, findsOneWidget);
-      await tester.ensureVisible(internalLink);
-      await tester.tap(internalLink);
-      await tester.pumpAndSettle();
-
-      expect(find.byType(AdminLoginScreen), findsOneWidget);
-      expect(find.text('ACCESO RÁPIDO DE PRUEBA'), findsOneWidget);
+      expect(find.text('🔒 Acceso Empleados / Panel Interno'), findsNothing);
+      expect(find.text('ACCESO RÁPIDO DE PRUEBA'), findsNothing);
     });
   });
 }

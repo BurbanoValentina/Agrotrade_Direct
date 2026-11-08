@@ -630,8 +630,6 @@ class MockOfferRepository implements OfferRepository {
   }
 
   @override
-  Future<List<NegotiationRound>> fetchNegotiationRounds(
-      String negotiationId) async {
   Future<PurchaseRequest> updateShippingStatus(
     String negotiationId,
     ShippingStatus status, {

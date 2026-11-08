@@ -8,8 +8,9 @@ AgroTrade Direct es una aplicación móvil desarrollada en **Flutter** diseñada
 
 ## 🔗 Enlaces Importantes
 
-- 📄 **Espacio en Confluence:** `[COLOCAR_AQUI_URL_DE_CONFLUENCE]`
-- 🎨 **Prototipos y Wireframes (Framer):** `[COLOCAR_AQUI_URL_DE_FRAMER]`
+- 📄 **Espacio en Confluence:** https://tinaynn.atlassian.net/wiki/x/CAAC
+- 📊 **Diapositivas:** https://tinaynn.atlassian.net/wiki/x/CAAC
+- 🎨 **Mockups:** https://shed-distort-65346516.figma.site/
 - 📊 **Product Backlog & Requerimientos:** [Google Drive - AgroTrade Backlog](https://drive.google.com/file/d/1MKV_Ac984Y7VsclXakVrPD6ntK1H9-Cx/view?usp=drive_link)
 
 ---
@@ -18,48 +19,15 @@ AgroTrade Direct es una aplicación móvil desarrollada en **Flutter** diseñada
 
 - **Impulsora / UX Lead:** Valentina Burbano
 - **Aprobador:** Profesora / Cliente (Representante de RiTech SAS)
-- **Estado del Proyecto:** 🟡 En progreso (Prototipo funcional / Migración a Backend)
-- **Fecha de Vencimiento:** 30 de octubre de 2026
-- **Resultados Principales:**
-  - Archivo ejecutable **APK** final para dispositivos Android.
-  - Catálogo dinámico integrado con 25 requerimientos del sistema distribuidos en 3 Releases.
-  - Módulo de negociación de precios estilo *InDrive* con actualización de propuestas en tiempo real.
-  - Mapa dinámico interactivo de ruta logística Colombia – UE.
+- **Estado del Proyecto:** ✅ Finalizado (prototipo funcional, clima y persistencia preparados)
+- **Fecha de Finalización:** 07 de noviembre de 2026
 
 ---
 
-## 🚨 Planteamiento del Problema e Hipótesis
+## 🚨 Planteamiento del Problema
 
 ### Problema
 Los pequeños y medianos exportadores colombianos de café y cacao enfrentan intermediaciones complejas, opacidad en la fijación de precios y barreras de entrada para conectar directamente con los compradores en la Unión Europea. Esta falta de canal directo limita el margen de ganancia de los productores agrícolas y dificulta la trazabilidad requerida por los importadores europeos.
-
-### Hipótesis
-Creemos que implementando una plataforma móvil accesible en Flutter con negociación directa de precios tipo *InDrive* y visualización geolocalizada entre Colombia y la UE, lograremos reducir la brecha comercial y agilizar los acuerdos de exportación de commodities. Sabremos que estamos en lo cierto si los exportadores e importadores logran cerrar intenciones de compra acordadas en tiempo real dentro de la aplicación con un flujo transparente.
-
----
-
-## 🎯 Alcance del Proyecto y Estado de Requerimientos
-
-### 🟢 MVP Actual / Base Prototipo Funcional
-- **Autenticación Básica:** Registro e inicio de sesión con captura de rol (Exportador / Importador), empresa y país (`REQ-02`, `REQ-03`, `REQ-04`).
-- **Exploración de Mercado:** Catálogo de ofertas de café y cacao con detalle completo (variedad, región, precio por tonelada, volumen, certificaciones y calificación) (`REQ-11`, `REQ-13`).
-- **Búsqueda y Filtros:** Búsqueda por variedad u origen y filtrado por categoría (Todos, Café, Cacao) (`REQ-10`, `REQ-12`).
-- **Simulación de Negociación:** Modal para envío de contraofertas con precio propuesto (`REQ-14`).
-- **Arquitectura Base:** Separación en capas (Modelos, Proveedores de estado con Provider, Repositorios e Interfaces de datos) preparada para conexión a backend.
-
-### 🟡 En Desarrollo / Pendientes (Release 2)
-- **Persistencia en Backend:** Migración de datos locales simulados a base de datos real en **Supabase** (`REQ-23`).
-- **Gestión de Ofertas:** Módulo completo para publicar, editar y eliminar ofertas por parte del exportador (`REQ-06` a `REQ-09`).
-- **Flujo de Negociación Real:** Persistencia de contraofertas, ciclo de vida de propuestas (Aceptar / Rechazar) e historial de tratos en *My Deals* (`REQ-15` a `REQ-17`, `REQ-19`).
-- **Rastreo Logístico:** Implementación completa del mapa dinámico Colombia – UE con marcadores e hitos de despacho en *Trade Map* (`REQ-18`).
-- **Gestión de Perfil:** Pantalla de *Profile* completa y editable (`REQ-05`).
-- **Seguridad y Notificaciones:** Control de acceso por roles (RBAC) y notificaciones Push (`REQ-20`, `REQ-24`).
-
-### 🔴 Versiones Posteriores (Release 3)
-- Procesamiento de pasarelas de pago transaccionales bancarias en vivo (acuerdo contractual independiente).
-- Rastreo satelital GPS en tiempo real de buques cargueros (se gestiona mediante hitos logísticos estacionales).
-- Sistema avanzado de calificaciones, reseñas, reportes y denuncias (`REQ-21`, `REQ-22`).
-- Indicadores de mercado en vivo integrados a APIs financieras externas.
 
 ---
 
@@ -80,11 +48,11 @@ Creemos que implementando una plataforma móvil accesible en Flutter con negocia
 | Hito | Responsable | Fecha Límite | Estado |
 | :--- | :--- | :--- | :--- |
 | **Hito 1:** Propuesta comercial/técnica y User Story Map (25 REQ) | David Luna | 2026-09-05 | ✅ Completado |
-| **Hito 2:** Aprobación de Confluence y arquitectura de datos | Valery Rosero | 2026-09-12 | 🟡 En progreso |
-| **Hito 3:** Diseño de prototipos de alta fidelidad (Framer) | Valentina Burbano | 2026-09-20 | 🟡 En progreso |
-| **Hito 4:** Estructuración de backend y servicios de autenticación | Johan Delgado | 2026-10-05 | ⚪ Sin iniciar |
-| **Hito 5:** Desarrollo frontend en Flutter y conexión | Omar Acosta | 2026-10-18 | ⚪ Sin iniciar |
-| **Hito 6:** Pruebas QA, corrección de hallazgos y APK final | Valentina Burbano / Equipo | 2026-10-30 | ⚪ Sin iniciar |
+| **Hito 2:** Aprobación de Confluence y arquitectura de datos | Valery Rosero | 2026-09-12 | ✅ Completado |
+| **Hito 3:** Diseño de prototipos de alta fidelidad | Valentina Burbano | 2026-09-20 | ✅ Completado |
+| **Hito 4:** Backend y servicios de autenticación | Johan Delgado | 2026-10-05 | ✅ Completado |
+| **Hito 5:** Desarrollo frontend, clima y conexión | Omar Acosta | 2026-10-18 | ✅ Completado |
+| **Hito 6:** Pruebas QA y APK final | Valentina Burbano / Equipo | 2026-11-07 | ✅ Completado |
 
 ---
 
@@ -127,5 +95,30 @@ Creemos que implementando una plataforma móvil accesible en Flutter con negocia
 4. **Instalar dependencias y ejecutar:**
    ```bash
    flutter pub get
-   flutter run
+   flutter run --dart-define=GOOGLE_WEATHER_API_KEY=TU_CLAVE
    ```
+
+Si Supabase aún no está configurado, la app arranca en modo local con datos de prueba y el dashboard
+del clima usa datos de respaldo. Para conexión real, proporciona `SUPABASE_URL` y
+`SUPABASE_ANON_KEY` mediante `--dart-define` usando únicamente la clave anon/publishable.
+
+## Diagrama de clases
+
+```mermaid
+classDiagram
+  class AuthProvider
+  class MarketProvider
+  class WeatherRepository
+  class GoogleWeatherRepository
+  class SupabaseWeatherRepository
+  class WeatherDashboardScreen
+  class WeatherForecast
+  class WeatherRegion
+  AuthProvider --> AuthRepository
+  MarketProvider --> OfferRepository
+  WeatherDashboardScreen --> WeatherRepository
+  GoogleWeatherRepository ..|> WeatherRepository
+  SupabaseWeatherRepository ..|> WeatherRepository
+  WeatherRepository --> WeatherForecast
+  WeatherForecast --> WeatherRegion
+```

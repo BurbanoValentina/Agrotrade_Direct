@@ -386,8 +386,7 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                         ),
                         value: isSuperAdmin,
                         activeTrackColor: colors.gold.withValues(alpha: 0.5),
-                        activeColor: colors
-                            .gold, // <--- SE CAMBIÓ activeThumbColor POR activeColor
+                        activeThumbColor: colors.gold,
                         onChanged: (val) => setDialogState(() {
                           isSuperAdmin = val;
                           if (val) isManager = false;
@@ -421,7 +420,7 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                         ),
                         value: isManager,
                         activeTrackColor: colors.gold.withValues(alpha: 0.5),
-                        activeColor: colors.gold,
+                        activeThumbColor: colors.gold,
                         onChanged: isSuperAdmin
                             ? null
                             : (value) => setDialogState(() {

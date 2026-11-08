@@ -26,16 +26,19 @@ import 'providers/locale_provider.dart'; // REQ-31
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializar cliente de Supabase
-  await Supabase.initialize(
-    url: SupabaseConstants.url,
-    // ignore: deprecated_member_use
-    anonKey: SupabaseConstants.anonKey,
-  );
+  final supabaseConfigured = SupabaseConstants.isConfigured;
+  if (supabaseConfigured) {
+    await Supabase.initialize(
+      url: SupabaseConstants.supabaseUrl,
+      // ignore: deprecated_member_use
+      anonKey: SupabaseConstants.supabaseAnonKey,
+    );
+  }
 
   // Restaurar la sesión guardada antes de mostrar la app: si el usuario ya
   // había iniciado sesión (y no está bloqueado) entra directo al Home.
-  final authRepository = SupabaseAuthRepository();
+  final AuthRepository authRepository =
+      supabaseConfigured ? SupabaseAuthRepository() : MockAuthRepository();
   final initialUser = await authRepository.restoreSession();
 
   runApp(
@@ -43,11 +46,18 @@ Future<void> main() async {
       providers: [
         // Repositorios reales de Supabase (PostgreSQL, Auth y RLS)
         Provider<AuthRepository>.value(value: authRepository),
-        Provider<OfferRepository>(create: (_) => SupabaseOfferRepository()),
+        Provider<OfferRepository>(
+            create: (_) => supabaseConfigured
+                ? SupabaseOfferRepository()
+                : MockOfferRepository()),
         Provider<CertificationRepository>(
-            create: (_) => SupabaseCertificationRepository()),
+            create: (_) => supabaseConfigured
+                ? SupabaseCertificationRepository()
+                : MockCertificationRepository()),
         Provider<ModerationRepository>(
-            create: (_) => SupabaseModerationRepository()),
+            create: (_) => supabaseConfigured
+                ? SupabaseModerationRepository()
+                : MockModerationRepository()),
         Provider<ConsumptionPointRepository>(
           create: (_) => SupabaseConsumptionPointRepository(),
         ),
@@ -55,7 +65,7 @@ Future<void> main() async {
         Provider<ModerationRepository>(create: (_) => SupabaseModerationRepository()),
         Provider<StatsRepository>(create: (_) => SupabaseStatsRepository()),
         Provider<NotificationRepository>(create: (_) => SupabaseNotificationRepository()),
-        Provider<WeatherRepository>(create: (_) => SupabaseWeatherRepository()),
+        Provider<WeatherRepository>(create: (_) => GoogleWeatherRepository()),
         // Admin aún sin backend: sigue en mock hasta tener tablas en Supabase.
         Provider<AdminRepository>(create: (_) => MockAdminRepository()),
 

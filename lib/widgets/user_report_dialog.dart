@@ -229,7 +229,7 @@ class _UserReportDialogState extends State<UserReportDialog> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: _selectedCategory,
+                    initialValue: _selectedCategory,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: colors.surfaceAlt,

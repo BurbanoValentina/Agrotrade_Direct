@@ -11,6 +11,7 @@ import '../../widgets/theme_toggle_button.dart';
 import '../../widgets/user_report_dialog.dart';
 import '../map/trade_map_screen.dart';
 import '../market/market_screen.dart';
+import '../weather/weather_dashboard_screen.dart';
 
 /// Contenedor con la barra de navegación inferior de las 4 secciones:
 /// Market, My Deals, Trade Map (REQ-18), Profile.
@@ -33,12 +34,7 @@ class _HomeShellState extends State<HomeShell> {
 
     final screens = [
       const MarketScreen(),
-      _PlaceholderScreen(
-        icon: Icons.assignment_outlined,
-        title: loc.translate('deals_title'),
-        subtitle: loc.translate('deals_subtitle'),
-        description: loc.translate('deals_description'),
-      ),
+      const WeatherDashboardScreen(),
       const TradeMapScreen(), // REQ-18: Integración de la pantalla completa de rutas y mapa
       _ProfileScreen(user: user),
     ];
@@ -372,6 +368,7 @@ class _ProfileScreen extends StatelessWidget {
 }
 
 /// Pantalla temporal para módulos en desarrollo asignados a otros integrantes
+// ignore: unused_element
 class _PlaceholderScreen extends StatelessWidget {
   const _PlaceholderScreen({
     required this.icon,

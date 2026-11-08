@@ -615,19 +615,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Center(
-            child: TextButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const AdminLoginScreen(),
-                  ),
-                );
-              },
-              child: const Text('🔒 Acceso Empleados / Panel Interno'),
-            ),
-          ),
         ],
       ),
     );
