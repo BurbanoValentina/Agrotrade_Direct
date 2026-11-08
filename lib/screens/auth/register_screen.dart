@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/user_role.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/theme_toggle_button.dart';
+import '../../widgets/language_toggle_button.dart';
 import '../home/home_shell.dart';
 
 /// REQ-02 / REQ-03: Registro independiente para exportador e importador.
@@ -122,7 +124,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFF3B82F6).withValues(alpha: colors.isDark ? 0.14 : 0.06),
+                    const Color(0xFF3B82F6)
+                        .withValues(alpha: colors.isDark ? 0.14 : 0.06),
                     Colors.transparent,
                   ],
                 ),
@@ -133,17 +136,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: isWide ? 960 : 500),
                   child: Container(
                     decoration: BoxDecoration(
                       color: colors.surface,
                       borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: colors.border.withValues(alpha: 0.9)),
+                      border: Border.all(
+                          color: colors.border.withValues(alpha: 0.9)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: colors.isDark ? 0.35 : 0.06),
+                          color: Colors.black
+                              .withValues(alpha: colors.isDark ? 0.35 : 0.06),
                           blurRadius: 32,
                           offset: const Offset(0, 12),
                         ),
@@ -163,16 +169,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     gradient: LinearGradient(
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
-                                      colors: [colors.surfaceAlt, colors.surface],
+                                      colors: [
+                                        colors.surfaceAlt,
+                                        colors.surface
+                                      ],
                                     ),
-                                    border: Border(right: BorderSide(color: colors.border)),
+                                    border: Border(
+                                        right:
+                                            BorderSide(color: colors.border)),
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       IconButton(
                                         onPressed: () => Navigator.pop(context),
-                                        icon: const Icon(Icons.arrow_back_rounded),
+                                        icon: const Icon(
+                                            Icons.arrow_back_rounded),
                                         style: IconButton.styleFrom(
                                           backgroundColor: colors.surface,
                                           foregroundColor: colors.textPrimary,
@@ -228,7 +241,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 flex: 5,
                                 child: Padding(
                                   padding: const EdgeInsets.all(36),
-                                  child: _buildRegisterForm(auth, colors, isExporter),
+                                  child: _buildRegisterForm(
+                                      auth, colors, isExporter),
                                 ),
                               ),
                             ],
@@ -238,12 +252,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             child: Column(
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     IconButton(
                                       onPressed: () => Navigator.pop(context),
-                                      icon: const Icon(Icons.arrow_back_rounded),
+                                      icon:
+                                          const Icon(Icons.arrow_back_rounded),
                                     ),
+                                    const LanguageToggleButton(compact: true),
                                     const ThemeToggleButton(compact: true),
                                   ],
                                 ),
@@ -262,7 +279,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildBenefitItem(AppThemeColors colors, IconData icon, String title, String desc) {
+  Widget _buildBenefitItem(
+      AppThemeColors colors, IconData icon, String title, String desc) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -281,12 +299,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               Text(
                 title,
-                style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13),
+                style: TextStyle(
+                    color: colors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13),
               ),
               const SizedBox(height: 2),
               Text(
                 desc,
-                style: TextStyle(color: colors.textSecondary, fontSize: 11.5, height: 1.3),
+                style: TextStyle(
+                    color: colors.textSecondary, fontSize: 11.5, height: 1.3),
               ),
             ],
           ),
@@ -295,14 +317,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildRegisterForm(AuthProvider auth, AppThemeColors colors, bool isExporter) {
+  Widget _buildRegisterForm(
+      AuthProvider auth, AppThemeColors colors, bool isExporter) {
+    final loc = context.l10n;
+
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Crear Cuenta Comercial',
+            loc.translate('register_title'),
             style: TextStyle(
               color: colors.textPrimary,
               fontSize: 22,
@@ -312,7 +337,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Selecciona tu perfil para personalizar tu entorno de trabajo:',
+            loc.translate('register_profile_prompt'),
             style: TextStyle(color: colors.textSecondary, fontSize: 13),
           ),
           const SizedBox(height: 18),
@@ -322,8 +347,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               Expanded(
                 child: _RoleCard(
-                  title: 'Exportador',
-                  subtitle: '🇨🇴 Colombia',
+                  title: loc.translate('exporter'),
+                  subtitle: '🇨🇴 ${loc.translate('colombia')}',
                   icon: Icons.agriculture_rounded,
                   selected: isExporter,
                   onTap: () => setState(() => _role = UserRole.exportador),
@@ -332,8 +357,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _RoleCard(
-                  title: 'Importador',
-                  subtitle: '🇪🇺 Unión Europea',
+                  title: loc.translate('importer'),
+                  subtitle: '🇪🇺 ${loc.translate('eu_union')}',
                   icon: Icons.public_rounded,
                   selected: !isExporter,
                   onTap: () => setState(() => _role = UserRole.importador),
@@ -348,11 +373,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: _nameCtrl,
             style: TextStyle(color: colors.textPrimary, fontSize: 14),
             decoration: InputDecoration(
-              labelText: 'Nombre completo',
+              labelText: loc.translate('register_name'),
               hintText: 'Ej. Juan Pérez / Anna Becker',
-              prefixIcon: Icon(Icons.person_outline_rounded, color: colors.gold, size: 20),
+              prefixIcon: Icon(Icons.person_outline_rounded,
+                  color: colors.gold, size: 20),
             ),
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+            validator: (v) => (v == null || v.trim().isEmpty)
+                ? loc.translate('required_field')
+                : null,
           ),
           const SizedBox(height: 14),
 
@@ -363,13 +391,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
             autocorrect: false,
             style: TextStyle(color: colors.textPrimary, fontSize: 14),
             decoration: InputDecoration(
-              labelText: 'Correo electrónico',
+              labelText: loc.translate('register_email'),
               hintText: 'contacto@empresa.com',
-              prefixIcon: Icon(Icons.mail_outline_rounded, color: colors.gold, size: 20),
+              prefixIcon: Icon(Icons.mail_outline_rounded,
+                  color: colors.gold, size: 20),
             ),
             validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Ingresa tu correo';
-              if (!v.contains('@') || !v.contains('.')) return 'Correo electrónico inválido';
+              if (v == null || v.trim().isEmpty) {
+                return loc.translate('required_field');
+              }
+              if (!v.contains('@') || !v.contains('.')) {
+                return loc.translate('invalid_email');
+              }
               return null;
             },
           ),
@@ -381,19 +414,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
             obscureText: _obscurePassword,
             style: TextStyle(color: colors.textPrimary, fontSize: 14),
             decoration: InputDecoration(
-              labelText: 'Contraseña',
-              hintText: 'Mínimo 4 caracteres',
-              prefixIcon: Icon(Icons.lock_outline_rounded, color: colors.gold, size: 20),
+              labelText: loc.translate('register_password'),
+              hintText: loc.translate('password_minimum'),
+              prefixIcon: Icon(Icons.lock_outline_rounded,
+                  color: colors.gold, size: 20),
               suffixIcon: IconButton(
                 icon: Icon(
-                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   color: colors.textMuted,
                   size: 18,
                 ),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
             ),
-            validator: (v) => (v == null || v.length < 4) ? 'Mínimo 4 caracteres' : null,
+            validator: (v) => (v == null || v.length < 4)
+                ? loc.translate('password_minimum')
+                : null,
           ),
           const SizedBox(height: 14),
 
@@ -402,9 +441,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: _companyCtrl,
             style: TextStyle(color: colors.textPrimary, fontSize: 14),
             decoration: InputDecoration(
-              labelText: isExporter ? 'Finca / Empresa exportadora' : 'Empresa importadora',
-              hintText: isExporter ? 'Finca La Esmeralda (opcional)' : 'Hanseatic Coffee GmbH (opcional)',
-              prefixIcon: Icon(Icons.business_outlined, color: colors.gold, size: 20),
+              labelText: loc.translate(isExporter
+                  ? 'register_company_exporter'
+                  : 'register_company_importer'),
+              hintText: isExporter
+                  ? 'Finca La Esmeralda (opcional)'
+                  : 'Hanseatic Coffee GmbH (opcional)',
+              prefixIcon:
+                  Icon(Icons.business_outlined, color: colors.gold, size: 20),
             ),
           ),
           const SizedBox(height: 14),
@@ -414,9 +458,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: _countryCtrl,
             style: TextStyle(color: colors.textPrimary, fontSize: 14),
             decoration: InputDecoration(
-              labelText: isExporter ? 'Región cafetera / cacaotera' : 'País de destino (UE)',
-              hintText: isExporter ? 'Huila, Nariño, Antioquia...' : 'Alemania, Países Bajos, Francia...',
-              prefixIcon: Icon(Icons.place_outlined, color: colors.gold, size: 20),
+              labelText: loc.translate(isExporter
+                  ? 'register_region_exporter'
+                  : 'register_country_importer'),
+              hintText: isExporter
+                  ? 'Huila, Nariño, Antioquia...'
+                  : 'Alemania, Países Bajos, Francia...',
+              prefixIcon:
+                  Icon(Icons.place_outlined, color: colors.gold, size: 20),
             ),
           ),
           const SizedBox(height: 24),
@@ -428,7 +477,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               onPressed: auth.isLoading ? null : _submit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: colors.gold,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
                 elevation: 3,
               ),
               child: auth.isLoading
@@ -443,10 +493,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.person_add_rounded, size: 18, color: colors.isDark ? Colors.black : Colors.white),
+                        Icon(Icons.person_add_rounded,
+                            size: 18,
+                            color: colors.isDark ? Colors.black : Colors.white),
                         const SizedBox(width: 8),
                         Text(
-                          'Completar Registro',
+                          loc.translate('register_finish'),
                           style: TextStyle(
                             color: colors.isDark ? Colors.black : Colors.white,
                             fontWeight: FontWeight.w800,
@@ -464,7 +516,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
-                '¿Ya tienes cuenta? Inicia sesión aquí',
+                loc.translate('already_have_account'),
                 style: TextStyle(
                   color: colors.gold,
                   fontWeight: FontWeight.w700,

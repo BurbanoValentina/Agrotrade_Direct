@@ -11,7 +11,8 @@ import '../models/user_role.dart';
 /// vienen los datos. [initialUser] es la sesión restaurada al abrir la app
 /// (ver `main.dart`), así el usuario no tiene que iniciar sesión cada vez.
 class AuthProvider extends ChangeNotifier {
-  AuthProvider(this._repository, {AppUser? initialUser}) : _currentUser = initialUser;
+  AuthProvider(this._repository, {AppUser? initialUser})
+      : _currentUser = initialUser;
 
   // Instancia del repositorio de autenticación inyectado (Inversión de Dependencias)
   final AuthRepository _repository;
@@ -135,7 +136,8 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// Método privado para actualizar la bandera de carga y notificar a los oyentes.
-  Future<bool> _run(Future<AppUser> Function() action, {required String fallbackError}) async {
+  Future<bool> _run(Future<AppUser> Function() action,
+      {required String fallbackError}) async {
     _setLoading(true);
     try {
       _currentUser = await action();

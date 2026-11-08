@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
-import '../../providers/admin_provider.dart';
 import '../../providers/auth_provider.dart';
 
 /// REQ-22: Formulario de reporte y denuncia para usuarios finales.

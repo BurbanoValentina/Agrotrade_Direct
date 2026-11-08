@@ -97,10 +97,12 @@ class OperationHistoryExporter {
           r.closeReason ?? '',
         ].map(_csvField).join(';'));
     }
-    return Uint8List.fromList([0xEF, 0xBB, 0xBF, ...utf8.encode(buffer.toString())]);
+    return Uint8List.fromList(
+        [0xEF, 0xBB, 0xBF, ...utf8.encode(buffer.toString())]);
   }
 
-  static String _csvNumber(double value) => value.toStringAsFixed(2).replaceAll('.', ',');
+  static String _csvNumber(double value) =>
+      value.toStringAsFixed(2).replaceAll('.', ',');
 
   static String _csvField(String value) {
     if (value.contains(RegExp('[;"\r\n]'))) {
@@ -122,7 +124,8 @@ class OperationHistoryExporter {
         ? 'Todas las fechas'
         : '${from == null ? 'inicio' : _dayFmt.format(from)} a ${to == null ? 'hoy' : _dayFmt.format(to)}';
 
-    final doc = pw.Document(title: 'Historial de operaciones', author: 'AgroTrade Direct');
+    final doc = pw.Document(
+        title: 'Historial de operaciones', author: 'AgroTrade Direct');
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4.landscape,
@@ -131,17 +134,21 @@ class OperationHistoryExporter {
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             pw.Text('AgroTrade Direct - Historial de operaciones',
-                style: const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                style:
+                    pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
             pw.SizedBox(height: 4),
-            pw.Text(_pdfText(
-                'Usuario: $userName   |   Periodo: $range   |   Generado: ${_dateFmt.format(generatedAt ?? DateTime.now())}'),
-                style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+            pw.Text(
+                _pdfText(
+                    'Usuario: $userName   |   Periodo: $range   |   Generado: ${_dateFmt.format(generatedAt ?? DateTime.now())}'),
+                style:
+                    const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
             pw.Divider(),
           ],
         ),
         footer: (context) => pw.Align(
           alignment: pw.Alignment.centerRight,
-          child: pw.Text('Página ${context.pageNumber} de ${context.pagesCount}',
+          child: pw.Text(
+              'Página ${context.pageNumber} de ${context.pagesCount}',
               style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
         ),
         build: (context) => [
@@ -152,17 +159,28 @@ class OperationHistoryExporter {
             )
           else
             pw.TableHelper.fromTextArray(
-              headerStyle: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+              headerStyle:
+                  pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
               cellStyle: const pw.TextStyle(fontSize: 8),
-              headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+              headerDecoration:
+                  const pw.BoxDecoration(color: PdfColors.grey300),
               cellAlignments: {
                 7: pw.Alignment.centerRight,
                 8: pw.Alignment.centerRight,
                 9: pw.Alignment.centerRight,
               },
               headers: const [
-                'Cierre', 'Estado', 'Rol', 'Producto', 'Variedad', 'Destino',
-                'Contraparte', 'USD/MT', 'MT', 'Total USD', 'Motivo',
+                'Cierre',
+                'Estado',
+                'Rol',
+                'Producto',
+                'Variedad',
+                'Destino',
+                'Contraparte',
+                'USD/MT',
+                'MT',
+                'Total USD',
+                'Motivo',
               ],
               data: [
                 for (final r in records)
@@ -186,7 +204,7 @@ class OperationHistoryExporter {
             'Operaciones: ${summary.operations}   |   Confirmadas: ${summary.confirmed}   |   '
             'Volumen confirmado: ${_moneyFmt.format(summary.confirmedVolumeMt)} MT   |   '
             'Valor confirmado: USD ${_moneyFmt.format(summary.confirmedValueUsd)}',
-            style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+            style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
           ),
         ],
       ),

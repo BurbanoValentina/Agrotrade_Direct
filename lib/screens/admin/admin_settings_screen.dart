@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../providers/admin_provider.dart';
-import '../../widgets/responsive_layout.dart';
 import 'admin_employees_screen.dart';
 
 /// REQ Admin: Pantalla de Ajustes.
@@ -338,10 +337,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Text(
+                                const Text(
                                   'Auditoría Financiera Activa',
                                   style: TextStyle(
-                                    color: const Color(0xFF10B981),
+                                    color: Color(0xFF10B981),
                                     fontWeight: FontWeight.w700,
                                     fontSize: 11,
                                   ),

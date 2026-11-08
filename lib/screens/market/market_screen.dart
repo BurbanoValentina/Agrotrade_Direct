@@ -5,8 +5,8 @@ import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/user_role.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/locale_provider.dart';
 import '../../providers/market_provider.dart';
+import '../../widgets/language_toggle_button.dart';
 import '../../widgets/role_toggle.dart';
 import '../../widgets/stat_chip.dart';
 import '../../widgets/theme_toggle_button.dart';
@@ -47,7 +47,6 @@ class _MarketScreenState extends State<MarketScreen> {
   Widget build(BuildContext context) {
     final market = context.watch<MarketProvider>();
     final user = context.watch<AuthProvider>().currentUser;
-    final localeProvider = context.watch<LocaleProvider>();
     final colors = context.colors;
     final isExporter = user?.role == UserRole.exportador;
     final loc = AppLocalizations.of(context);
@@ -60,15 +59,20 @@ class _MarketScreenState extends State<MarketScreen> {
                 final newOffer = await showCreateOfferSheet(context);
                 if (newOffer == null || !context.mounted) return;
 
-                final ok = await context.read<MarketProvider>().addOffer(newOffer);
+                final ok =
+                    await context.read<MarketProvider>().addOffer(newOffer);
                 if (!context.mounted) return;
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(ok
-                        ? 'Oferta publicada exitosamente'
-                        : 'Error al publicar la oferta'),
-                    backgroundColor: ok ? Colors.green.shade800 : Colors.redAccent,
+                    content: Text(
+                      ok
+                          ? context.l10n.translate('offer_published_success')
+                          : context.read<MarketProvider>().lastError ??
+                              context.l10n.translate('offer_publish_error'),
+                    ),
+                    backgroundColor:
+                        ok ? Colors.green.shade800 : Colors.redAccent,
                   ),
                 );
               },
@@ -93,7 +97,8 @@ class _MarketScreenState extends State<MarketScreen> {
 
             if (isDesktop) {
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -116,7 +121,8 @@ class _MarketScreenState extends State<MarketScreen> {
                             const SizedBox(height: 16),
 
                             // Caja de Búsqueda y Filtros
-                            _buildSearchAndFilters(context, colors, market, loc),
+                            _buildSearchAndFilters(
+                                context, colors, market, loc),
                             const SizedBox(height: 16),
 
                             // Panel de Acceso Rápido y Métricas de Rol
@@ -132,10 +138,11 @@ class _MarketScreenState extends State<MarketScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildHeaderBar(context, colors, market, localeProvider, loc),
+                          _buildHeaderBar(context, colors, market, loc),
                           const SizedBox(height: 14),
                           Expanded(
-                            child: _buildOffersList(context, colors, market, loc),
+                            child:
+                                _buildOffersList(context, colors, market, loc),
                           ),
                         ],
                       ),
@@ -155,7 +162,7 @@ class _MarketScreenState extends State<MarketScreen> {
                   const SizedBox(height: 12),
                   _buildRoleBanner(colors, isExporter),
                   const SizedBox(height: 14),
-                  _buildHeaderBar(context, colors, market, localeProvider, loc),
+                  _buildHeaderBar(context, colors, market, loc),
                   const SizedBox(height: 12),
                   _buildSearchAndFilters(context, colors, market, loc),
                   const SizedBox(height: 10),
@@ -246,7 +253,8 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  Widget _buildRoleActionCard(BuildContext context, AppThemeColors colors, bool isExporter) {
+  Widget _buildRoleActionCard(
+      BuildContext context, AppThemeColors colors, bool isExporter) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -280,7 +288,8 @@ class _MarketScreenState extends State<MarketScreen> {
             isExporter
                 ? 'Todas tus ofertas incluyen sello de origen Huila, Nariño o Sierra Nevada conforme a normativas de no deforestación EUTR.'
                 : 'Tus compras cuentan con custodia segura de fondos y verificación fitosanitaria previa al embarque.',
-            style: TextStyle(color: colors.textMuted, fontSize: 11, height: 1.3),
+            style:
+                TextStyle(color: colors.textMuted, fontSize: 11, height: 1.3),
           ),
         ],
       ),
@@ -291,7 +300,6 @@ class _MarketScreenState extends State<MarketScreen> {
     BuildContext context,
     AppThemeColors colors,
     MarketProvider market,
-    LocaleProvider localeProvider,
     AppLocalizations loc,
   ) {
     return Row(
@@ -329,7 +337,7 @@ class _MarketScreenState extends State<MarketScreen> {
                   ),
                   const SizedBox(width: 5),
                   Text(
-                    'EN VIVO',
+                    loc.translate('live'),
                     style: TextStyle(
                       color: colors.statusActive,
                       fontSize: 10,
@@ -345,22 +353,14 @@ class _MarketScreenState extends State<MarketScreen> {
         Row(
           children: [
             Text(
-              '${market.visibleOffers.length} ofertas',
-              style: TextStyle(color: colors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+              '${market.visibleOffers.length} ${loc.translate('offers_count')}',
+              style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600),
             ),
             const SizedBox(width: 12),
-            TextButton(
-              style: TextButton.styleFrom(
-                backgroundColor: colors.surfaceAlt,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-              onPressed: () => context.read<LocaleProvider>().toggleLanguage(),
-              child: Text(
-                localeProvider.isSpanish ? 'ES' : 'EN',
-                style: TextStyle(fontWeight: FontWeight.bold, color: colors.gold, fontSize: 12),
-              ),
-            ),
+            const LanguageToggleButton(compact: true),
             const SizedBox(width: 8),
             const ThemeToggleButton(compact: true),
           ],
@@ -394,10 +394,12 @@ class _MarketScreenState extends State<MarketScreen> {
                   style: TextStyle(color: colors.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     hintText: loc.translate('search_placeholder'),
-                    prefixIcon: Icon(Icons.search_rounded, color: colors.textMuted, size: 18),
+                    prefixIcon: Icon(Icons.search_rounded,
+                        color: colors.textMuted, size: 18),
                     suffixIcon: _searchCtrl.text.isNotEmpty
                         ? IconButton(
-                            icon: Icon(Icons.close_rounded, color: colors.textMuted, size: 16),
+                            icon: Icon(Icons.close_rounded,
+                                color: colors.textMuted, size: 16),
                             onPressed: () {
                               _searchCtrl.clear();
                               market.setQuery('');
@@ -405,7 +407,8 @@ class _MarketScreenState extends State<MarketScreen> {
                             },
                           )
                         : null,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
                   ),
                 ),
               ),
@@ -413,7 +416,8 @@ class _MarketScreenState extends State<MarketScreen> {
               IconButton(
                 style: IconButton.styleFrom(
                   backgroundColor: colors.surfaceAlt,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: Icon(Icons.tune_rounded, color: colors.gold, size: 20),
                 onPressed: () async {
@@ -422,7 +426,9 @@ class _MarketScreenState extends State<MarketScreen> {
                     initialOptions: market.filterOptions,
                   );
                   if (options != null && context.mounted) {
-                    context.read<MarketProvider>().setAdvancedFilterOptions(options);
+                    context
+                        .read<MarketProvider>()
+                        .setAdvancedFilterOptions(options);
                   }
                 },
               ),
@@ -456,9 +462,9 @@ class _MarketScreenState extends State<MarketScreen> {
   }
 
   Widget _buildMarketTicker(AppThemeColors colors) {
-    return SingleChildScrollView(
+    return const SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: const Row(
+      child: Row(
         children: [
           StatChip(
             label: 'Arabica ICE',
@@ -500,6 +506,32 @@ class _MarketScreenState extends State<MarketScreen> {
       );
     }
 
+    if (market.loadError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_off_rounded, size: 44, color: colors.textMuted),
+              const SizedBox(height: 12),
+              Text(
+                market.loadError!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colors.textSecondary, fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => context.read<MarketProvider>().loadOffers(),
+                icon: const Icon(Icons.refresh_rounded),
+                label: Text(context.l10n.translate('retry')),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (market.visibleOffers.isEmpty) {
       return Center(
         child: Container(
@@ -515,7 +547,7 @@ class _MarketScreenState extends State<MarketScreen> {
               Icon(Icons.search_off_rounded, size: 48, color: colors.textMuted),
               const SizedBox(height: 14),
               Text(
-                'Sin resultados para tu búsqueda',
+                context.l10n.translate('offer_search_empty'),
                 style: TextStyle(
                   color: colors.textPrimary,
                   fontWeight: FontWeight.w700,
@@ -524,7 +556,7 @@ class _MarketScreenState extends State<MarketScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Prueba cambiando las palabras clave o los filtros.',
+                context.l10n.translate('offer_search_hint'),
                 style: TextStyle(color: colors.textSecondary, fontSize: 13),
               ),
             ],
@@ -554,8 +586,13 @@ class _MarketScreenState extends State<MarketScreen> {
                 SnackBar(
                   content: Text(
                     ok
-                        ? 'Contraoferta de \$${price.toStringAsFixed(0)}/MT enviada'
-                        : 'No se pudo enviar la contraoferta',
+                        ? context.l10n
+                            .translate('counter_offer_sent')
+                            .replaceFirst(
+                              '\$PRICE',
+                              '\$${price.toStringAsFixed(0)}',
+                            )
+                        : context.l10n.translate('counter_offer_error'),
                   ),
                 ),
               );
@@ -588,7 +625,9 @@ class _FilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? colors.gold.withValues(alpha: 0.15) : colors.surfaceAlt,
+          color: selected
+              ? colors.gold.withValues(alpha: 0.15)
+              : colors.surfaceAlt,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: selected ? colors.gold : colors.border,

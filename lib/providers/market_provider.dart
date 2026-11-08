@@ -110,11 +110,11 @@ class MarketProvider extends ChangeNotifier {
     }).toList();
   }
 
-
   /// REQ-06 a REQ-10: Publica una nueva oferta en el mercado
   /// REQ-06 a REQ-10: publica la oferta en Supabase y la agrega al Market con
   /// su id real. Devuelve `false` con el motivo en [lastError] si se rechaza.
   Future<bool> addOffer(CropOffer offer) async {
+    _lastError = null;
     try {
       final saved = await _repository.publishOffer(offer);
       _offers.insert(0, saved);
@@ -123,6 +123,9 @@ class MarketProvider extends ChangeNotifier {
       return true;
     } on RepositoryException catch (e) {
       _lastError = e.message;
+      return false;
+    } catch (e) {
+      _lastError = 'No se pudo publicar la oferta.';
       notifyListeners();
       return false;
     }
@@ -211,7 +214,6 @@ class MarketProvider extends ChangeNotifier {
     }
   }
 
-
   /// REQ-12: Actualiza la categoría del filtro rápido
   void setFilter(MarketFilter filter) {
     _filterOptions = _filterOptions.copyWith(category: filter);
@@ -242,7 +244,6 @@ class MarketProvider extends ChangeNotifier {
     }
   }
 
-
   /// REQ-12: Restablece todos los filtros a sus valores predeterminados
   void resetFilters() {
     _filterOptions = const MarketFilterOptions();
@@ -253,11 +254,6 @@ class MarketProvider extends ChangeNotifier {
   /// REQ-11: Actualiza la consulta de búsqueda
   void setQuery(String query) {
     _searchQuery = query;
-    notifyListeners();
-  }
-
-  void _setLoading(bool value) {
-    _isLoading = value;
     notifyListeners();
   }
 }

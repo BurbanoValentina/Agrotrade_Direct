@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/constants/supabase_constants.dart';
+import 'core/services/consumption_point_repository.dart';
 import 'data/repositories/admin_repository.dart';
 import 'data/repositories/auth_repository.dart';
 import 'data/repositories/certification_repository.dart';
@@ -27,9 +28,9 @@ Future<void> main() async {
 
   // Inicializar cliente de Supabase
   await Supabase.initialize(
-    url: SupabaseConstants.supabaseUrl,
+    url: SupabaseConstants.url,
     // ignore: deprecated_member_use
-    anonKey: SupabaseConstants.supabaseAnonKey,
+    anonKey: SupabaseConstants.anonKey,
   );
 
   // Restaurar la sesión guardada antes de mostrar la app: si el usuario ya
@@ -43,6 +44,13 @@ Future<void> main() async {
         // Repositorios reales de Supabase (PostgreSQL, Auth y RLS)
         Provider<AuthRepository>.value(value: authRepository),
         Provider<OfferRepository>(create: (_) => SupabaseOfferRepository()),
+        Provider<CertificationRepository>(
+            create: (_) => SupabaseCertificationRepository()),
+        Provider<ModerationRepository>(
+            create: (_) => SupabaseModerationRepository()),
+        Provider<ConsumptionPointRepository>(
+          create: (_) => SupabaseConsumptionPointRepository(),
+        ),
         Provider<CertificationRepository>(create: (_) => SupabaseCertificationRepository()),
         Provider<ModerationRepository>(create: (_) => SupabaseModerationRepository()),
         Provider<StatsRepository>(create: (_) => SupabaseStatsRepository()),
@@ -57,8 +65,8 @@ Future<void> main() async {
           create: (_) => ThemeProvider(),
         ),
         ChangeNotifierProvider(
-          create: (ctx) =>
-              AuthProvider(ctx.read<AuthRepository>(), initialUser: initialUser),
+          create: (ctx) => AuthProvider(ctx.read<AuthRepository>(),
+              initialUser: initialUser),
         ),
         ChangeNotifierProvider(
           create: (ctx) => MarketProvider(ctx.read<OfferRepository>()),

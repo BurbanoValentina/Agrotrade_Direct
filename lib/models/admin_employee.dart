@@ -34,11 +34,9 @@ class AdminEmployee {
   bool hasPermission(AdminPermission permission) {
     if (isSuperAdmin) return true;
     if (isManager) {
-      // El gerente solo puede consultar Dashboard, Reportes y monitoreo de seguridad en lectura
+      // El gerente solo puede consultar Dashboard y Reportes.
       return permission == AdminPermission.dashboard ||
-          permission == AdminPermission.reports ||
-          permission == AdminPermission.security ||
-          permission == AdminPermission.negotiationManagement;
+          permission == AdminPermission.reports;
     }
     return permissions.contains(permission);
   }

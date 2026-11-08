@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/localization/app_localizations.dart';
+import '../../core/auth/admin_role_guard.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/admin_role_extension.dart';
 import '../../models/admin_permission.dart';
 import '../../providers/admin_provider.dart';
 import '../../widgets/qa_testing_panel_dialog.dart';
 import '../../widgets/theme_toggle_button.dart';
+import '../../widgets/language_toggle_button.dart';
 import '../auth/login_screen.dart';
 import 'admin_dashboard_screen.dart';
 import 'admin_operations_screen.dart';
@@ -42,6 +46,7 @@ class _AdminShellState extends State<AdminShell> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final loc = context.l10n;
     final provider = context.watch<AdminProvider>();
     final employee = provider.currentEmployee;
 
@@ -52,40 +57,62 @@ class _AdminShellState extends State<AdminShell> {
       );
     }
 
-    final isSuper = provider.isSuperAdmin;
+    final isSuper = context.isSuperAdmin;
+    final isManager = context.isManager;
 
     // Construir pestañas dinámicas según los permisos asignados
     final tabs = <_AdminTabItem>[];
 
     // 1. Dashboard
-    if (isSuper || provider.hasPermission(AdminPermission.dashboard)) {
+    if (isSuper ||
+        isManager ||
+        provider.hasPermission(AdminPermission.dashboard)) {
       tabs.add(
-        const _AdminTabItem(
-          label: 'Dashboard',
+        _AdminTabItem(
+          label: loc.translate('admin_dashboard'),
           icon: Icons.dashboard_rounded,
-          screen: AdminDashboardScreen(),
+          screen: const AdminRoleGuard(
+            allowedRoles: [
+              AdminRole.superAdmin,
+              AdminRole.manager,
+              AdminRole.employee,
+            ],
+            requiredPermissions: [AdminPermission.dashboard],
+            child: AdminDashboardScreen(),
+          ),
         ),
       );
     }
 
     // 2. Usuarios
-    if (isSuper || provider.hasPermission(AdminPermission.userManagement)) {
+    if (isSuper ||
+        (!isManager &&
+            provider.hasPermission(AdminPermission.userManagement))) {
       tabs.add(
-        const _AdminTabItem(
-          label: 'Usuarios',
+        _AdminTabItem(
+          label: loc.translate('admin_users'),
           icon: Icons.people_alt_rounded,
-          screen: AdminUsersScreen(),
+          screen: const AdminRoleGuard(
+            allowedRoles: [AdminRole.superAdmin, AdminRole.employee],
+            requiredPermissions: [AdminPermission.userManagement],
+            child: AdminUsersScreen(),
+          ),
         ),
       );
     }
 
     // 3. Seguridad
-    if (isSuper || provider.hasPermission(AdminPermission.security)) {
+    if (isSuper ||
+        (!isManager && provider.hasPermission(AdminPermission.security))) {
       tabs.add(
         _AdminTabItem(
-          label: 'Seguridad',
+          label: loc.translate('admin_security'),
           icon: Icons.shield_rounded,
-          screen: const AdminSecurityScreen(),
+          screen: const AdminRoleGuard(
+            allowedRoles: [AdminRole.superAdmin, AdminRole.employee],
+            requiredPermissions: [AdminPermission.security],
+            child: AdminSecurityScreen(),
+          ),
           badgeCount: provider.pendingAlertsCount,
         ),
       );
@@ -93,27 +120,43 @@ class _AdminShellState extends State<AdminShell> {
 
     // 4. Mercado (Ofertas, Negociaciones, Reportes)
     if (isSuper ||
+        isManager ||
         provider.hasPermission(AdminPermission.offerManagement) ||
         provider.hasPermission(AdminPermission.negotiationManagement) ||
         provider.hasPermission(AdminPermission.reports)) {
       tabs.add(
-        const _AdminTabItem(
-          label: 'Mercado',
+        _AdminTabItem(
+          label: loc.translate('admin_market'),
           icon: Icons.storefront_rounded,
-          screen: AdminOperationsScreen(),
+          screen: const AdminRoleGuard(
+            allowedRoles: [
+              AdminRole.superAdmin,
+              AdminRole.manager,
+              AdminRole.employee,
+            ],
+            child: AdminOperationsScreen(),
+          ),
         ),
       );
     }
 
     // 5. Ajustes (Gestión de Empleados con claves autogeneradas + Parámetros)
     if (isSuper ||
-        provider.hasPermission(AdminPermission.settings) ||
-        provider.hasPermission(AdminPermission.employeeManagement)) {
+        (!isManager &&
+            (provider.hasPermission(AdminPermission.settings) ||
+                provider.hasPermission(AdminPermission.employeeManagement)))) {
       tabs.add(
-        const _AdminTabItem(
-          label: 'Ajustes',
+        _AdminTabItem(
+          label: loc.translate('admin_settings'),
           icon: Icons.settings_rounded,
-          screen: AdminSettingsScreen(),
+          screen: const AdminRoleGuard(
+            allowedRoles: [AdminRole.superAdmin, AdminRole.employee],
+            requiredPermissions: [
+              AdminPermission.settings,
+              AdminPermission.employeeManagement,
+            ],
+            child: AdminSettingsScreen(),
+          ),
         ),
       );
     }
@@ -123,7 +166,8 @@ class _AdminShellState extends State<AdminShell> {
         backgroundColor: colors.background,
         appBar: AppBar(
           backgroundColor: colors.surface,
-          title: Text('Acceso Restringido', style: TextStyle(color: colors.textPrimary)),
+          title: Text(loc.translate('admin_restricted'),
+              style: TextStyle(color: colors.textPrimary)),
           actions: [
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.redAccent),
@@ -139,7 +183,7 @@ class _AdminShellState extends State<AdminShell> {
         ),
         body: Center(
           child: Text(
-            'No tienes permisos asignados. Contacta al Administrador.',
+            loc.translate('admin_no_permissions'),
             style: TextStyle(color: colors.textSecondary),
           ),
         ),
@@ -161,11 +205,14 @@ class _AdminShellState extends State<AdminShell> {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: employee.isSuperAdmin ? colors.gold : colors.surfaceAlt,
+              backgroundColor:
+                  employee.isSuperAdmin ? colors.gold : colors.surfaceAlt,
               child: Text(
                 employee.name.isNotEmpty ? employee.name[0].toUpperCase() : 'A',
                 style: TextStyle(
-                  color: employee.isSuperAdmin ? (colors.isDark ? Colors.black : Colors.white) : colors.textPrimary,
+                  color: employee.isSuperAdmin
+                      ? (colors.isDark ? Colors.black : Colors.white)
+                      : colors.textPrimary,
                   fontWeight: FontWeight.w800,
                   fontSize: 14,
                 ),
@@ -193,7 +240,8 @@ class _AdminShellState extends State<AdminShell> {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: employee.isSuperAdmin
                               ? colors.gold.withValues(alpha: 0.16)
@@ -211,21 +259,29 @@ class _AdminShellState extends State<AdminShell> {
                             Icon(
                               employee.isSuperAdmin
                                   ? Icons.workspace_premium_rounded
-                                  : (employee.isManager ? Icons.analytics_outlined : Icons.shield_rounded),
+                                  : (employee.isManager
+                                      ? Icons.analytics_outlined
+                                      : Icons.shield_rounded),
                               size: 11,
                               color: employee.isSuperAdmin
                                   ? colors.gold
-                                  : (employee.isManager ? Colors.purpleAccent : colors.textSecondary),
+                                  : (employee.isManager
+                                      ? Colors.purpleAccent
+                                      : colors.textSecondary),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               employee.isSuperAdmin
                                   ? 'Super Admin'
-                                  : (employee.isManager ? 'Gerente (Consulta)' : 'Empleado'),
+                                  : (employee.isManager
+                                      ? 'Gerente (Consulta)'
+                                      : 'Empleado'),
                               style: TextStyle(
                                 color: employee.isSuperAdmin
                                     ? colors.gold
-                                    : (employee.isManager ? Colors.purpleAccent : colors.textPrimary),
+                                    : (employee.isManager
+                                        ? Colors.purpleAccent
+                                        : colors.textPrimary),
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -248,7 +304,7 @@ class _AdminShellState extends State<AdminShell> {
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        'Panel de Control Interno',
+                        loc.translate('admin_panel'),
                         style: TextStyle(
                           color: colors.textSecondary,
                           fontSize: 11,
@@ -273,23 +329,26 @@ class _AdminShellState extends State<AdminShell> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: colors.gold.withValues(alpha: 0.4)),
                 ),
-                child: Icon(Icons.bug_report_rounded, color: colors.gold, size: 18),
+                child: Icon(Icons.bug_report_rounded,
+                    color: colors.gold, size: 18),
               ),
               onPressed: () => QaTestingPanelDialog.show(context),
             ),
             const SizedBox(width: 4),
           ],
+          const LanguageToggleButton(compact: true),
           const ThemeToggleButton(compact: true),
           const SizedBox(width: 6),
           IconButton(
-            tooltip: 'Cerrar Sesión',
+            tooltip: loc.translate('admin_logout'),
             icon: Container(
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
                 color: Colors.red.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 18),
+              child: const Icon(Icons.logout_rounded,
+                  color: Colors.redAccent, size: 18),
             ),
             onPressed: () {
               provider.logout();
@@ -310,7 +369,8 @@ class _AdminShellState extends State<AdminShell> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: colors.border.withValues(alpha: 0.6))),
+          border: Border(
+              top: BorderSide(color: colors.border.withValues(alpha: 0.6))),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
@@ -326,7 +386,8 @@ class _AdminShellState extends State<AdminShell> {
                 backgroundColor: Colors.redAccent,
                 label: Text(
                   tab.badgeCount.toString(),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 10),
                 ),
                 child: iconWidget,
               );

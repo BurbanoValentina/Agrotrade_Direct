@@ -152,7 +152,10 @@ class AdminDashboardScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 10,
+                  runSpacing: 6,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -185,7 +188,6 @@ class AdminDashboardScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 10),
                     Text(
                       '· Auditoría en Tiempo Real',
                       style: TextStyle(color: colors.textMuted, fontSize: 12),
@@ -244,85 +246,6 @@ class AdminDashboardScreen extends StatelessWidget {
             color: colors.textPrimary,
             letterSpacing: -0.3,
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildKpiGrid(dynamic stats, NumberFormat currencyFmt, dynamic colors, double availableWidth) {
-    int crossAxisCount = availableWidth > 900 ? 3 : (availableWidth > 550 ? 2 : 1);
-    double childAspectRatio = availableWidth > 900 ? 1.05 : 1.15;
-
-    return GridView.count(
-      crossAxisCount: crossAxisCount,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      childAspectRatio: childAspectRatio,
-      children: [
-        _StatCard(
-          title: 'Total Usuarios',
-          value: stats.totalUsers.toString(),
-          subtitle: 'Productores y Compradores',
-          icon: Icons.people_alt_rounded,
-          color: const Color(0xFF3B82F6),
-          lightImagePath: 'assets/imagenes/Total_Usuarios_Modo_Claro.jpg',
-          darkImagePath: 'assets/imagenes/Total_Usuarios_Modo_Oscuro.jpg',
-        ),
-        _StatCard(
-          title: 'Ofertas Activas',
-          value: stats.activeOffers.toString(),
-          subtitle: 'Lotes de Café y Cacao',
-          icon: Icons.storefront_rounded,
-          color: colors.statusActive,
-          lightImagePath: 'assets/imagenes/Ofertas_Activas_Modo_Claro.jpg',
-          darkImagePath: 'assets/imagenes/Ofertas_Activas_Modo_Oscuro.jpg',
-        ),
-        _StatCard(
-          title: 'Negociaciones',
-          value: stats.activeNegotiations.toString(),
-          subtitle: 'Tratos en Mesa Activa',
-          icon: Icons.handshake_rounded,
-          color: colors.statusNegotiating,
-          lightImagePath: 'assets/imagenes/Negociacion_Modo_Claro.jpg',
-          darkImagePath: 'assets/imagenes/Negociacion_Modo_Oscuro.jpg',
-        ),
-        _StatCard(
-          title: 'Bloqueados',
-          value: stats.blockedUsers.toString(),
-          subtitle: 'Cuentas Restringidas',
-          icon: Icons.block_flipped,
-          color: Colors.redAccent,
-          lightImagePath: 'assets/imagenes/Bloqueados_Modo_Claro.jpg',
-          darkImagePath: 'assets/imagenes/Bloqueados_Modo_Oscuro.jpg',
-        ),
-        _StatCard(
-          title: 'Alertas Pendientes',
-          value: stats.pendingAlerts.toString(),
-          subtitle: 'Riesgos por Dictamen',
-          icon: Icons.warning_amber_rounded,
-          color: const Color(0xFFF59E0B),
-          lightImagePath: 'assets/imagenes/Alertas_Pendientes_Modo_Claro.jpg',
-          darkImagePath: 'assets/imagenes/Alertas_Pendientes_Modo_Oscuro.jpg',
-        ),
-        _StatCard(
-          title: 'Volumen (MT)',
-          value: '${stats.totalVolumeMt} MT',
-          subtitle: 'Toneladas Certificadas',
-          icon: Icons.scale_rounded,
-          color: const Color(0xFF8B5CF6),
-          lightImagePath: 'assets/imagenes/Volumen_Modo_Claro.jpg',
-          darkImagePath: 'assets/imagenes/Volumen_Modo_Oscuro.jpg',
-        ),
-        _StatCard(
-          title: 'Valor Total (USD)',
-          value: currencyFmt.format(stats.totalValueUsd),
-          subtitle: 'Volumen Monetario en Oferta',
-          icon: Icons.monetization_on_rounded,
-          color: colors.gold,
-          lightImagePath: 'assets/imagenes/Valor_Modo_Claro.png',
-          darkImagePath: 'assets/imagenes/Valor_Modo_Oscuro.png',
         ),
       ],
     );
