@@ -288,7 +288,10 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
     final colors = context.colors;
     final provider = context.read<AdminProvider>();
     bool isSuperAdmin = employee.isSuperAdmin;
-    List<AdminPermission> selectedPerms = List.from(employee.permissions);
+    bool isManager = !employee.isSuperAdmin && employee.isManager;
+    List<AdminPermission> selectedPerms = isManager
+        ? [AdminPermission.dashboard, AdminPermission.reports]
+        : List.from(employee.permissions);
 
     showDialog(
       context: context,
@@ -385,8 +388,51 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                         activeTrackColor: colors.gold.withValues(alpha: 0.5),
                         activeColor: colors
                             .gold, // <--- SE CAMBIÓ activeThumbColor POR activeColor
-                        onChanged: (val) =>
-                            setDialogState(() => isSuperAdmin = val),
+                        onChanged: (val) => setDialogState(() {
+                          isSuperAdmin = val;
+                          if (val) isManager = false;
+                        }),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceAlt,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: colors.border),
+                      ),
+                      child: SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          'Gerente · solo lectura',
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Puede consultar métricas y reportes agregados, sin gestionar usuarios ni configuración.',
+                          style: TextStyle(
+                            color: colors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                        value: isManager,
+                        activeTrackColor: colors.gold.withValues(alpha: 0.5),
+                        activeColor: colors.gold,
+                        onChanged: isSuperAdmin
+                            ? null
+                            : (value) => setDialogState(() {
+                                  isManager = value;
+                                  if (value) {
+                                    selectedPerms = [
+                                      AdminPermission.dashboard,
+                                      AdminPermission.reports,
+                                    ];
+                                  }
+                                }),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -403,8 +449,11 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                     ),
                     const SizedBox(height: 8),
                     ...AdminPermission.values.map((p) {
-                      final isChecked =
-                          selectedPerms.contains(p) || isSuperAdmin;
+                      final isManagerPermission = p == AdminPermission.dashboard ||
+                          p == AdminPermission.reports;
+                      final isChecked = isSuperAdmin ||
+                          (isManager && isManagerPermission) ||
+                          (!isManager && selectedPerms.contains(p));
                       return Container(
                         margin: const EdgeInsets.only(bottom: 6),
                         decoration: BoxDecoration(
@@ -435,7 +484,7 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                           activeColor: colors.gold,
                           checkColor:
                               colors.isDark ? Colors.black : Colors.white,
-                          onChanged: isSuperAdmin
+                          onChanged: isSuperAdmin || isManager
                               ? null
                               : (val) {
                                   setDialogState(() {
@@ -476,7 +525,11 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                     style: TextStyle(fontWeight: FontWeight.w800)),
                 onPressed: () async {
                   await provider.updateEmployeePermissions(
-                      employee.id, selectedPerms, isSuperAdmin);
+                    employee.id,
+                    selectedPerms,
+                    isSuperAdmin,
+                    isManager: isManager,
+                  );
                   if (ctx.mounted) Navigator.pop(ctx);
                 },
               ),
@@ -676,9 +729,11 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                                 child: Text(
                                   emp.isSuperAdmin
                                       ? '👑 Super Admin'
+                                      : emp.isManager
+                                          ? '📊 Gerente'
                                       : '🛡️ Empleado',
                                   style: TextStyle(
-                                    color: emp.isSuperAdmin
+                                    color: emp.isSuperAdmin || emp.isManager
                                         ? colors.gold
                                         : colors.textPrimary,
                                     fontSize: 11,

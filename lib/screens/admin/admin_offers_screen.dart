@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/crop_offer.dart';
 import '../../providers/admin_provider.dart';
-import '../../widgets/responsive_layout.dart';
 
 class AdminOffersScreen extends StatefulWidget {
   const AdminOffersScreen({super.key});

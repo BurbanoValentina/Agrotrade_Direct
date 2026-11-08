@@ -6,6 +6,7 @@ import 'package:agrotrade_direct/data/mock/mock_admin_data.dart';
 import 'package:agrotrade_direct/data/repositories/admin_repository.dart';
 import 'package:agrotrade_direct/data/repositories/auth_repository.dart';
 import 'package:agrotrade_direct/data/repositories/offer_repository.dart';
+import 'package:agrotrade_direct/core/auth/admin_role_guard.dart';
 import 'package:agrotrade_direct/models/admin_permission.dart';
 import 'package:agrotrade_direct/models/blocked_user.dart';
 import 'package:agrotrade_direct/models/suspicious_activity.dart';
@@ -21,6 +22,7 @@ Widget _buildTestApp({
   required AdminRepository adminRepo,
   required AuthRepository authRepo,
   Widget? home,
+  AdminProvider? adminProvider,
 }) {
   return MultiProvider(
     providers: [
@@ -29,11 +31,24 @@ Widget _buildTestApp({
       Provider<AdminRepository>.value(value: adminRepo),
       ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ChangeNotifierProvider(create: (_) => AuthProvider(authRepo)),
-      ChangeNotifierProvider(create: (_) => MarketProvider(MockOfferRepository())),
-      ChangeNotifierProvider(create: (_) => AdminProvider(adminRepo)),
+      ChangeNotifierProvider(
+          create: (_) => MarketProvider(MockOfferRepository())),
+      ChangeNotifierProvider(
+        create: (_) => adminProvider ?? AdminProvider(adminRepo),
+      ),
     ],
     child: MaterialApp(
       home: home ?? const LoginScreen(),
+      routes: {
+        '/admin': (_) => const AdminRoleGuard(
+              allowedRoles: [
+                AdminRole.superAdmin,
+                AdminRole.manager,
+                AdminRole.employee,
+              ],
+              child: AdminShell(),
+            ),
+      },
     ),
   );
 }
@@ -49,32 +64,106 @@ void main() {
     });
 
     test('Credenciales maestras de Valentina como Super Admin', () async {
-      final success = await provider.loginEmployee(adminGateEmail, adminGatePassword);
+      final success =
+          await provider.loginEmployee(adminGateEmail, adminGatePassword);
       expect(success, isTrue);
       expect(provider.isLoggedIn, isTrue);
       expect(provider.isSuperAdmin, isTrue);
       expect(provider.currentEmployee?.name, equals('Valentina Burbano'));
       expect(provider.hasPermission(AdminPermission.security), isTrue);
-      expect(provider.hasPermission(AdminPermission.employeeManagement), isTrue);
+      expect(
+          provider.hasPermission(AdminPermission.employeeManagement), isTrue);
       expect(provider.hasPermission(AdminPermission.settings), isTrue);
     });
 
     test('Empleado con permisos limitados', () async {
       // Carlos Mendoza tiene: dashboard, userManagement, security
-      final success = await provider.loginEmployee('carlos.mendoza@agrotrade.co', 'Agr0#xK9m2');
+      final success = await provider.loginEmployee(
+          'carlos.mendoza@agrotrade.co', 'Agr0#xK9m2');
       expect(success, isTrue);
       expect(provider.isSuperAdmin, isFalse);
       expect(provider.hasPermission(AdminPermission.dashboard), isTrue);
       expect(provider.hasPermission(AdminPermission.userManagement), isTrue);
       expect(provider.hasPermission(AdminPermission.security), isTrue);
-      expect(provider.hasPermission(AdminPermission.employeeManagement), isFalse);
+      expect(
+          provider.hasPermission(AdminPermission.employeeManagement), isFalse);
       expect(provider.hasPermission(AdminPermission.settings), isFalse);
     });
 
-    test('Creación de empleado con contraseña autogenerada aleatoria', () async {
+    test('Gerente solo conserva permisos de consulta y no puede modificar',
+        () async {
+      await provider.loginEmployee(adminGateEmail, adminGatePassword);
+      final manager = await provider.createEmployee(
+          'Gerente de consulta', 'manager@agrotrade.co');
+      expect(manager, isNotNull);
+
+      await provider.updateEmployeePermissions(
+        manager!.id,
+        AdminPermission.values,
+        false,
+        isManager: true,
+      );
+      provider.logout();
+
+      final success = await provider.loginEmployee(
+        manager.email,
+        manager.password,
+      );
+
+      expect(success, isTrue);
+      expect(provider.isManager, isTrue);
+      expect(provider.hasPermission(AdminPermission.dashboard), isTrue);
+      expect(provider.hasPermission(AdminPermission.reports), isTrue);
+      expect(provider.hasPermission(AdminPermission.userManagement), isFalse);
+      expect(provider.hasPermission(AdminPermission.security), isFalse);
+      expect(
+        provider.deleteUser('usr-001'),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    testWidgets(
+        'Gerente recibe una pantalla amigable al entrar a un área restringida',
+        (tester) async {
+      await provider.loginEmployee(adminGateEmail, adminGatePassword);
+      final manager = await provider.createEmployee(
+          'Gerente de consulta', 'manager@agrotrade.co');
+      await provider.updateEmployeePermissions(
+        manager!.id,
+        AdminPermission.values,
+        false,
+        isManager: true,
+      );
+      provider.logout();
+      await provider.loginEmployee(manager.email, manager.password);
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          adminRepo: repo,
+          authRepo: MockAuthRepository(),
+          adminProvider: provider,
+          home: const AdminRoleGuard(
+            allowedRoles: [AdminRole.superAdmin],
+            child: Text('Contenido restringido'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Contenido restringido'), findsNothing);
+      expect(
+        find.text('No tienes permisos para acceder a esta sección.'),
+        findsOneWidget,
+      );
+      expect(find.text('Volver'), findsOneWidget);
+    });
+
+    test('Creación de empleado con contraseña autogenerada aleatoria',
+        () async {
       await provider.loginEmployee(adminGateEmail, adminGatePassword);
 
-      final newEmp = await provider.createEmployee('Nuevo Socio', 'socio@agrotrade.co');
+      final newEmp =
+          await provider.createEmployee('Nuevo Socio', 'socio@agrotrade.co');
       expect(newEmp, isNotNull);
       expect(newEmp!.email, equals('socio@agrotrade.co'));
       expect(newEmp.password.length, greaterThanOrEqualTo(10));
@@ -89,11 +178,13 @@ void main() {
     test('Otorgar y revocar Super Admin a un socio', () async {
       await provider.loginEmployee(adminGateEmail, adminGatePassword);
 
-      final newEmp = await provider.createEmployee('Socio Fundador', 'fundador@agrotrade.co');
+      final newEmp = await provider.createEmployee(
+          'Socio Fundador', 'fundador@agrotrade.co');
       expect(newEmp!.isSuperAdmin, isFalse);
 
       // Activar Super Admin para el socio
-      await provider.updateEmployeePermissions(newEmp.id, AdminPermission.values.toList(), true);
+      await provider.updateEmployeePermissions(
+          newEmp.id, AdminPermission.values.toList(), true);
       final updated = provider.employees.firstWhere((e) => e.id == newEmp.id);
       expect(updated.isSuperAdmin, isTrue);
       expect(updated.hasPermission(AdminPermission.settings), isTrue);
@@ -113,9 +204,11 @@ void main() {
       );
 
       expect(provider.isUserBlocked(targetEmail), isTrue);
-      expect(provider.blockedUsers.any((u) => u.userEmail == targetEmail), isTrue);
+      expect(
+          provider.blockedUsers.any((u) => u.userEmail == targetEmail), isTrue);
 
-      final blocked = provider.blockedUsers.firstWhere((u) => u.userEmail == targetEmail);
+      final blocked =
+          provider.blockedUsers.firstWhere((u) => u.userEmail == targetEmail);
       expect(blocked.reason, contains('comprobantes falsos'));
       expect(blocked.blockedBy, equals('Valentina Burbano'));
 
@@ -138,15 +231,18 @@ void main() {
   });
 
   group('Panel Admin - Tests de Interfaz (Widgets)', () {
-    testWidgets('Login con credenciales maestras redirige al panel interno', (tester) async {
+    testWidgets('Login con credenciales maestras redirige al panel interno',
+        (tester) async {
       final adminRepo = MockAdminRepository();
       final authRepo = MockAuthRepository();
 
-      await tester.pumpWidget(_buildTestApp(adminRepo: adminRepo, authRepo: authRepo));
+      await tester
+          .pumpWidget(_buildTestApp(adminRepo: adminRepo, authRepo: authRepo));
       await tester.pumpAndSettle();
 
       // Encontrar campos de email y contraseña
-      final emailField = find.widgetWithText(TextFormField, 'Correo electrónico');
+      final emailField =
+          find.widgetWithText(TextFormField, 'Correo electrónico');
       final passwordField = find.widgetWithText(TextFormField, 'Contraseña');
       final submitBtn = find.text('Iniciar sesión');
 
@@ -176,10 +272,12 @@ void main() {
         blockedBy: 'Valentina Burbano',
       ));
 
-      await tester.pumpWidget(_buildTestApp(adminRepo: adminRepo, authRepo: authRepo));
+      await tester
+          .pumpWidget(_buildTestApp(adminRepo: adminRepo, authRepo: authRepo));
       await tester.pumpAndSettle();
 
-      final emailField = find.widgetWithText(TextFormField, 'Correo electrónico');
+      final emailField =
+          find.widgetWithText(TextFormField, 'Correo electrónico');
       final passwordField = find.widgetWithText(TextFormField, 'Contraseña');
       final submitBtn = find.text('Iniciar sesión');
 
@@ -199,14 +297,18 @@ void main() {
       await tester.pump();
     });
 
-    testWidgets('Login directo de empleado desde LoginScreen lleva a AdminShell', (tester) async {
+    testWidgets(
+        'Login directo de empleado desde LoginScreen lleva a AdminShell',
+        (tester) async {
       final adminRepo = MockAdminRepository();
       final authRepo = MockAuthRepository();
 
-      await tester.pumpWidget(_buildTestApp(adminRepo: adminRepo, authRepo: authRepo));
+      await tester
+          .pumpWidget(_buildTestApp(adminRepo: adminRepo, authRepo: authRepo));
       await tester.pumpAndSettle();
 
-      final emailField = find.widgetWithText(TextFormField, 'Correo electrónico');
+      final emailField =
+          find.widgetWithText(TextFormField, 'Correo electrónico');
       final passwordField = find.widgetWithText(TextFormField, 'Contraseña');
       final submitBtn = find.text('Iniciar sesión');
 
@@ -229,14 +331,18 @@ void main() {
       expect(find.text('Mercado'), findsNothing);
     });
 
-    testWidgets('Valentina como Super Admin tiene las 5 pestañas abajo en AdminShell', (tester) async {
+    testWidgets(
+        'Valentina como Super Admin tiene las 5 pestañas abajo en AdminShell',
+        (tester) async {
       final adminRepo = MockAdminRepository();
       final authRepo = MockAuthRepository();
 
-      await tester.pumpWidget(_buildTestApp(adminRepo: adminRepo, authRepo: authRepo));
+      await tester
+          .pumpWidget(_buildTestApp(adminRepo: adminRepo, authRepo: authRepo));
       await tester.pumpAndSettle();
 
-      final emailField = find.widgetWithText(TextFormField, 'Correo electrónico');
+      final emailField =
+          find.widgetWithText(TextFormField, 'Correo electrónico');
       final passwordField = find.widgetWithText(TextFormField, 'Contraseña');
       final submitBtn = find.text('Iniciar sesión');
 
@@ -263,11 +369,14 @@ void main() {
       expect(find.text('Ajustes'), findsOneWidget);
     });
 
-    testWidgets('Enlace visible de panel interno en LoginScreen abre AdminLoginScreen', (tester) async {
+    testWidgets(
+        'Enlace visible de panel interno en LoginScreen abre AdminLoginScreen',
+        (tester) async {
       final adminRepo = MockAdminRepository();
       final authRepo = MockAuthRepository();
 
-      await tester.pumpWidget(_buildTestApp(adminRepo: adminRepo, authRepo: authRepo));
+      await tester
+          .pumpWidget(_buildTestApp(adminRepo: adminRepo, authRepo: authRepo));
       await tester.pumpAndSettle();
 
       final internalLink = find.text('🔒 Acceso Empleados / Panel Interno');

@@ -1,20 +1,4 @@
-/// Estado de una negociación entre comprador y vendedor.
-enum NegotiationStatus { pendiente, aceptada, rechazada, completada }
-
-extension NegotiationStatusLabel on NegotiationStatus {
-  String get label {
-    switch (this) {
-      case NegotiationStatus.pendiente:
-        return 'Pendiente';
-      case NegotiationStatus.aceptada:
-        return 'Aceptada';
-      case NegotiationStatus.rechazada:
-        return 'Rechazada';
-      case NegotiationStatus.completada:
-        return 'Completada';
-    }
-  }
-}
+import 'purchase_request.dart';
 
 /// Registro de una negociación/contraoferta en la plataforma.
 class Negotiation {

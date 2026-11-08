@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/user_role.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/language_toggle_button.dart';
 import '../../widgets/responsive_layout.dart';
 import '../../widgets/theme_toggle_button.dart';
 import '../../widgets/user_report_dialog.dart';
@@ -27,15 +29,15 @@ class _HomeShellState extends State<HomeShell> {
     final colors = context.colors;
     final auth = context.watch<AuthProvider>();
     final user = auth.currentUser;
+    final loc = context.l10n;
 
     final screens = [
       const MarketScreen(),
-      const _PlaceholderScreen(
+      _PlaceholderScreen(
         icon: Icons.assignment_outlined,
-        title: 'Mis Negociaciones',
-        subtitle: 'Seguimiento de ofertas y contraofertas activas',
-        description:
-            'Aquí podrás gestionar todas tus propuestas comerciales, contraofertas en tiempo real y el historial de acuerdos cerrados.',
+        title: loc.translate('deals_title'),
+        subtitle: loc.translate('deals_subtitle'),
+        description: loc.translate('deals_description'),
       ),
       const TradeMapScreen(), // REQ-18: Integración de la pantalla completa de rutas y mapa
       _ProfileScreen(user: user),
@@ -55,38 +57,48 @@ class _HomeShellState extends State<HomeShell> {
             ),
           ],
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (i) => setState(() => _currentIndex = i),
-          backgroundColor: colors.surface,
-          selectedItemColor: colors.gold,
-          unselectedItemColor: colors.textSecondary,
-          selectedLabelStyle:
-              const TextStyle(fontWeight: FontWeight.w800, fontSize: 11),
-          unselectedLabelStyle:
-              const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
-          type: BottomNavigationBarType.fixed,
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.grid_view_rounded),
-              activeIcon: Icon(Icons.grid_view_rounded),
-              label: 'Mercado',
+        child: Row(
+          children: [
+            Expanded(
+              child: BottomNavigationBar(
+                currentIndex: _currentIndex,
+                onTap: (i) => setState(() => _currentIndex = i),
+                backgroundColor: colors.surface,
+                selectedItemColor: colors.gold,
+                unselectedItemColor: colors.textSecondary,
+                selectedLabelStyle:
+                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 11),
+                unselectedLabelStyle:
+                    const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
+                type: BottomNavigationBarType.fixed,
+                elevation: 0,
+                items: [
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.grid_view_rounded),
+                    activeIcon: const Icon(Icons.grid_view_rounded),
+                    label: loc.translate('nav_market'),
+                  ),
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.handshake_outlined),
+                    activeIcon: const Icon(Icons.handshake_rounded),
+                    label: loc.translate('nav_deals'),
+                  ),
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.navigation_outlined),
+                    activeIcon: const Icon(Icons.navigation_rounded),
+                    label: loc.translate('nav_routes'),
+                  ),
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.person_outline_rounded),
+                    activeIcon: const Icon(Icons.person_rounded),
+                    label: loc.translate('nav_profile'),
+                  ),
+                ],
+              ),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.handshake_outlined),
-              activeIcon: Icon(Icons.handshake_rounded),
-              label: 'Mis Tratos',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.navigation_outlined),
-              activeIcon: Icon(Icons.navigation_rounded),
-              label: 'Rutas',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              activeIcon: Icon(Icons.person_rounded),
-              label: 'Perfil',
+            const Padding(
+              padding: EdgeInsets.only(right: 6),
+              child: LanguageToggleButton(compact: true),
             ),
           ],
         ),
@@ -104,6 +116,7 @@ class _ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final isExporter = user?.role == UserRole.exportador;
+    final loc = context.l10n;
 
     return SafeArea(
       child: ResponsiveContainer(
@@ -114,7 +127,13 @@ class _ProfileScreen extends StatelessWidget {
             // Top action
             const Align(
               alignment: Alignment.topRight,
-              child: ThemeToggleButton(compact: true),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  LanguageToggleButton(compact: true),
+                  ThemeToggleButton(compact: true),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
 
@@ -152,7 +171,7 @@ class _ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    user?.name ?? 'Usuario AgroTrade',
+                    user?.name ?? loc.translate('profile_user'),
                     style: TextStyle(
                       color: colors.textPrimary,
                       fontSize: 22,
@@ -168,24 +187,28 @@ class _ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 14),
                   InkWell(
                     onTap: () {
-                      final newRole = isExporter ? UserRole.importador : UserRole.exportador;
+                      final newRole = isExporter
+                          ? UserRole.importador
+                          : UserRole.exportador;
                       context.read<AuthProvider>().setRole(newRole);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
                             newRole == UserRole.exportador
-                                ? 'Cambiado a vista Exportador 🇨🇴'
-                                : 'Cambiado a vista Importador 🇪🇺',
+                                ? loc.translate('switched_exporter')
+                                : loc.translate('switched_importer'),
                           ),
                           duration: const Duration(seconds: 2),
-                          backgroundColor: newRole == UserRole.exportador ? colors.gold : const Color(0xFF3B82F6),
+                          backgroundColor: newRole == UserRole.exportador
+                              ? colors.gold
+                              : const Color(0xFF3B82F6),
                         ),
                       );
                     },
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
                         color: isExporter
                             ? colors.gold.withValues(alpha: 0.12)
@@ -202,11 +225,12 @@ class _ProfileScreen extends StatelessWidget {
                         children: [
                           Text(
                             isExporter
-                                ? 'Exportador Certificado 🇨🇴'
-                                : 'Importador Oficial UE 🇪🇺',
+                                ? loc.translate('certified_exporter')
+                                : loc.translate('official_importer'),
                             style: TextStyle(
-                              color:
-                                  isExporter ? colors.gold : const Color(0xFF3B82F6),
+                              color: isExporter
+                                  ? colors.gold
+                                  : const Color(0xFF3B82F6),
                               fontWeight: FontWeight.w800,
                               fontSize: 12,
                             ),
@@ -215,7 +239,9 @@ class _ProfileScreen extends StatelessWidget {
                           Icon(
                             Icons.swap_horiz_rounded,
                             size: 16,
-                            color: isExporter ? colors.gold : const Color(0xFF3B82F6),
+                            color: isExporter
+                                ? colors.gold
+                                : const Color(0xFF3B82F6),
                           ),
                         ],
                       ),
@@ -225,7 +251,8 @@ class _ProfileScreen extends StatelessWidget {
                       user.companyName.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: colors.surfaceAlt,
                         borderRadius: BorderRadius.circular(10),
@@ -257,21 +284,21 @@ class _ProfileScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _UserStatMini(
-                        label: 'Tratos',
+                        label: loc.translate('profile_deals'),
                         value: '14',
                         icon: Icons.handshake_rounded,
                         color: colors.gold,
                       ),
                       Container(width: 1, height: 32, color: colors.border),
                       _UserStatMini(
-                        label: 'Calificación',
+                        label: loc.translate('profile_rating'),
                         value: '4.9 ★',
                         icon: Icons.star_rounded,
                         color: const Color(0xFFF59E0B),
                       ),
                       Container(width: 1, height: 32, color: colors.border),
                       _UserStatMini(
-                        label: 'Volumen',
+                        label: loc.translate('profile_volume'),
                         value: '320 MT',
                         icon: Icons.scale_rounded,
                         color: const Color(0xFF10B981),
@@ -289,17 +316,19 @@ class _ProfileScreen extends StatelessWidget {
               height: 44,
               child: OutlinedButton.icon(
                 onPressed: () => UserReportDialog.show(context),
-                icon: const Icon(Icons.flag_outlined, color: Colors.redAccent, size: 18),
-                label: const Text(
-                  'Reportar Irregularidad',
-                  style: TextStyle(
+                icon: const Icon(Icons.flag_outlined,
+                    color: Colors.redAccent, size: 18),
+                label: Text(
+                  loc.translate('report_irregularity'),
+                  style: const TextStyle(
                     color: Colors.redAccent,
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.3)),
+                  side: BorderSide(
+                      color: Colors.redAccent.withValues(alpha: 0.3)),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -319,9 +348,9 @@ class _ProfileScreen extends StatelessWidget {
                 },
                 icon: const Icon(Icons.logout_rounded,
                     color: Colors.redAccent, size: 18),
-                label: const Text(
-                  'Cerrar sesión',
-                  style: TextStyle(
+                label: Text(
+                  loc.translate('logout'),
+                  style: const TextStyle(
                     color: Colors.redAccent,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
@@ -368,7 +397,13 @@ class _PlaceholderScreen extends StatelessWidget {
           children: [
             const Align(
               alignment: Alignment.topRight,
-              child: ThemeToggleButton(compact: true),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  LanguageToggleButton(compact: true),
+                  ThemeToggleButton(compact: true),
+                ],
+              ),
             ),
             Center(
               child: Column(
@@ -429,7 +464,7 @@ class _PlaceholderScreen extends StatelessWidget {
                             size: 14, color: colors.textMuted),
                         const SizedBox(width: 6),
                         Text(
-                          'Módulo en fase de integración',
+                          context.l10n.translate('integration_module'),
                           style: TextStyle(
                               color: colors.textMuted,
                               fontSize: 11,
