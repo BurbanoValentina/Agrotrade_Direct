@@ -111,10 +111,14 @@ class MarketProvider extends ChangeNotifier {
   }
 
   /// REQ-06 a REQ-10: Publica una nueva oferta en el mercado
+  /// REQ-06 a REQ-10: publica la oferta en Supabase y la agrega al Market con
+  /// su id real. Devuelve `false` con el motivo en [lastError] si se rechaza.
   Future<bool> addOffer(CropOffer offer) async {
     _lastError = null;
     try {
-      _offers.insert(0, offer);
+      final saved = await _repository.publishOffer(offer);
+      _offers.insert(0, saved);
+      _lastError = null;
       notifyListeners();
       return true;
     } on RepositoryException catch (e) {
@@ -122,6 +126,43 @@ class MarketProvider extends ChangeNotifier {
       return false;
     } catch (e) {
       _lastError = 'No se pudo publicar la oferta.';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Ajusta precio, cantidad, destino o certificaciones de una oferta propia.
+  Future<bool> updateOffer(
+    String offerId, {
+    double? askPricePerMt,
+    double? volumeMt,
+    String? destinationCountry,
+    List<String>? certifications,
+  }) {
+    return _replaceOffer(() => _repository.updateOffer(
+          offerId,
+          askPricePerMt: askPricePerMt,
+          volumeMt: volumeMt,
+          destinationCountry: destinationCountry,
+          certifications: certifications,
+        ));
+  }
+
+  /// Retira una oferta propia del Market (queda `cerrada`).
+  Future<bool> closeOffer(String offerId) =>
+      _replaceOffer(() => _repository.closeOffer(offerId));
+
+  Future<bool> _replaceOffer(Future<CropOffer> Function() action) async {
+    try {
+      final updated = await action();
+      final index = _offers.indexWhere((o) => o.id == updated.id);
+      if (index != -1) _offers[index] = updated;
+      _lastError = null;
+      notifyListeners();
+      return true;
+    } on RepositoryException catch (e) {
+      _lastError = e.message;
+      notifyListeners();
       return false;
     }
   }

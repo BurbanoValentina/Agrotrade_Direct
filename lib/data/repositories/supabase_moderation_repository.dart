@@ -29,6 +29,7 @@ class SupabaseModerationRepository implements ModerationRepository {
     String? name,
     List<AdminPermission> permissions = const [],
     bool isSuperAdmin = false,
+    bool isManager = false,
   }) async {
     final data = await _invokeAdminUsers({
       'action': 'create_staff',
@@ -36,6 +37,7 @@ class SupabaseModerationRepository implements ModerationRepository {
       if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
       'permissions': permissions.map((p) => p.name).toList(),
       'is_super_admin': isSuperAdmin,
+      'is_manager': isManager,
     });
     return StaffInvitation.fromJson(data);
   }

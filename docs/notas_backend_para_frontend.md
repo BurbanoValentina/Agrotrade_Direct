@@ -125,9 +125,90 @@ Backend listo (ver `supabase/README.md` → *Panel admin*). Repositorio: `contex
 
 ---
 
+## REQ-47 — Privacidad comercial (Valentina, panel admin)
+
+Desde la migración `20261019000000_commercial_privacy.sql` **la base de datos ya no entrega a ningún miembro del personal** (ni al super admin) el precio, volumen, notas o mensajes de una negociación ajena. Lo que el panel puede mostrar:
+
+- **Métricas agregadas:** `context.read<StatsRepository>().fetchDashboardStats()` → `PlatformStats` (permiso `dashboard`): usuarios por rol, ofertas y negociaciones por estado, tratos por producto (`confirmedByCrop`), tasa de cierre, rondas y horas promedio, reportes y certificados pendientes, y tratos por mes (`confirmedByMonth`, 6 meses).
+  - **Montos ocultos:** `totalValueUsd`, `totalVolumeMt`, `CropStats.avgPricePerMt` y los promedios llegan `null` cuando hay menos de 3 tratos (`minGroupSize`). Mostrar *"Datos insuficientes"*, nunca 0. `CropStats.hasAmounts` lo indica.
+  - Las claves anteriores (`totalUsers`, `activeOffers`, etc.) siguen igual, así que `DashboardStats` del mock sigue sirviendo mientras se migra.
+- **Actividad sin montos:** `audit_log` con permiso `security` trae los cambios de estado, quién y cuándo, pero no los precios negociados.
+
+Pantallas a ajustar: la vista de negociaciones del panel (`AdminNegotiation` / `admin_negotiations_screen.dart`) no puede listar precio ni términos por negociación; reemplazarla por agregados. Si consulta `negotiations` directamente, ahora recibirá 0 filas.
+
+---
+
+## REQ-50 y REQ-46 — Puntos de consumo y gerente (Omar y Valentina)
+
+- **Puntos de consumo:** la tabla `coffee_consumption_points` ya existe con las columnas que lee `CoffeeConsumptionPoint.fromJson` (`city_name`, `country`, `latitude`, `longitude`, `annual_consumption_tons`, `main_import_grade`, `description`). Trae 6 puntos **de demostración** (`is_demo = true`) hasta que David cargue los reales (D7); el `SupabaseConsumptionPointRepository` de Omar funciona sin cambios.
+- **Gerente:** la base de datos ya aplica la matriz del documento v2. Para que el guard de navegación use el dato real en vez del mock:
+  ```dart
+  final row = await supabase.from('staff_members')
+      .select('is_super_admin, is_manager, permissions')
+      .eq('user_id', supabase.auth.currentUser!.id).maybeSingle();
+  // o simplemente: final isManager = await supabase.rpc('is_manager') as bool;
+  ```
+  Crear un gerente: `moderationRepository.inviteStaff(email: ..., isManager: true)` (sin permisos).
+- El gerente recibe 0 filas o un rechazo en cualquier acción (bloquear, advertir, resolver reportes, verificar certificados, editar configuración, gestionar empleados): ocultar esos botones evita mensajes de error, pero la seguridad ya no depende de la UI.
+
+---
+
 ## Carga de ofertas (Market)
 
 `MarketProvider.loadOffers()` ya no se queda cargando para siempre si falla. Ahora expone `market.loadError`. Falta mostrarlo en `market_screen.dart` (mensaje + botón "Reintentar" que llame a `market.loadOffers()`), en lugar de la lista vacía.
+
+- **Ya no hay ofertas falsas:** si Supabase falla, `fetchOffers()` devuelve la última copia guardada en el teléfono (REQ-27); si no hay copia, lanza el error real (queda en `loadError`). Antes mostraba ofertas de ejemplo cuyos ids no existen en la base, y cualquier solicitud de compra sobre ellas fallaba.
+
+---
+
+## REQ-06 a REQ-10 — Publicar, editar y cerrar ofertas (Omar)
+
+- **`market.addOffer(offer)` ahora guarda de verdad** en Supabase y devuelve `Future<bool>`. La oferta que aparece en la lista trae el id real, el vendedor y el estado `activa` que fija la base; el id, el vendedor y el estado que arme el formulario se ignoran. `market_screen.dart` ya revisa el `bool`, pero muestra "Error al publicar la oferta" sin decir por qué. Cambiar el texto del SnackBar a:
+  ```dart
+  content: Text(ok
+      ? 'Oferta publicada exitosamente'
+      : context.read<MarketProvider>().lastError ?? 'Error al publicar la oferta'),
+  ```
+- **Certificaciones:** el formulario envía siempre `['Organic', 'Fairtrade']` fijo. Debería dejar elegirlas (las que coinciden con certificados verificados del exportador salen con insignia, REQ-36).
+- **Editar:** `market.updateOffer(id, askPricePerMt: ..., volumeMt: ..., destinationCountry: ..., certifications: ...)` (solo los campos que cambian) → `bool` + `lastError`. Variedad, región y tipo de producto no se editan: si están mal, se cierra y se publica otra.
+- **Cerrar / retirar:** `market.closeOffer(id)` → la oferta queda `OfferStatus.cerrada` (etiqueta `CLOSED`) y las solicitudes pendientes de esa oferta se cancelan solas con el motivo "El exportador cerró la oferta.".
+- **"Mis ofertas":** `offerRepository.fetchMyOffers()` devuelve todas las ofertas del exportador, incluidas las cerradas. El botón "Gestionar mi Oferta" de `offer_card.dart` se muestra hoy a **cualquier** exportador; debería salir solo si `offer.sellerId == auth.currentUser.id`.
+- Mensajes que puede devolver la base (ya vienen en español en `lastError`): precio o cantidad en cero, variedad/región/destino vacíos, "No puedes bajar la cantidad a X MT: hay Y MT comprometidos en acuerdos aceptados.", "Hay un acuerdo aceptado pendiente de confirmar: confírmalo o cancélalo antes de cerrar la oferta.", "Esta oferta ya no se puede editar (estado: …).".
+- Recomendado: filtrar las cerradas del Market (`visibleOffers` las sigue mostrando con la etiqueta `CLOSED`).
+
+---
+
+## REQ-20, REQ-48 y REQ-49 — Notificaciones, envío y clima (Omar, Valery y Valentina)
+
+Todo está listo en la base de datos y registrado en `main.dart`: `context.read<NotificationRepository>()` y `context.read<WeatherRepository>()`. Cada repositorio tiene versión Mock para trabajar sin conexión.
+
+**Notificaciones (campana en la barra superior):**
+- `fetchNotifications()` → `List<AppNotification>` (`title`, `body`, `type`, `isRead`, `createdAt`, `negotiationId` para abrir el trato en My Deals).
+- `unreadCount()` para el globo; `markAsRead(id)`, `markAllAsRead()`, `deleteNotification(id)`.
+- Tiempo real: `watchNew().listen((n) => ...)` y cancelar la suscripción al cerrar sesión. Sirve para un SnackBar o para subir el contador.
+- Ícono por `type`: negociación 🤝, envío 🚢, clima 🌧️.
+
+**Preferencias de alertas (Valery, pantalla Configuración, REQ-43):**
+```dart
+final repo = context.read<NotificationRepository>();
+final prefs = await repo.fetchPreferences();            // ambas en true por defecto
+await repo.savePreferences(prefs.copyWith(weatherAlerts: false));
+```
+Dos interruptores: "Alertas de clima" y "Alertas de envío". Las de negociación siempre llegan.
+
+**Estado del envío (My Deals, tratos confirmados):**
+- `deal.shippingStatus` (`ShippingStatus.preparando / embarcado / enPuerto / entregado`, `label` en español) y `deal.nextShippingStep`.
+- Mostrar el botón solo si `deal.canAdvanceShipping(miId)`: el exportador ve "Marcar como ${deal.nextShippingStep!.label}" y el importador ve "Confirmar entrega" cuando la carga ya está embarcada.
+- `offerRepository.updateShippingStatus(deal.id, deal.nextShippingStep!, note: 'Contenedor MSCU…')` → devuelve el trato actualizado; los errores llegan en español como `RepositoryException`.
+- La línea de tiempo (`fetchNegotiationTimeline`) ya incluye los pasos con `type == 'envio'`.
+
+**Clima (Omar, ubicación según D4):**
+- `weatherRepository.fetchRegions()` → zonas productoras (`name`, `department`, `latitude`, `longitude`), sirven también como marcadores en el Trade Map.
+- `fetchForecast('huila')` → `WeatherForecast.days` (7 días: `description` en español, `maxTempC`, `minTempC`, `precipitationMm`, `maxWindKmh`). Si `stale` es true, mostrar "Datos de hace un rato: el servicio del clima no respondió".
+- `fetchAlerts()` → alertas vigentes (`message`, `kind.label`, `alertDate`) para un banner.
+- La API del clima es Open-Meteo vía la Edge Function `weather`: **no hay llave en la app** ni hace falta configurar nada en Flutter.
+
+**Panel admin (Valentina):** un botón "Revisar alertas de clima ahora" para el personal con permiso `settings` → `weatherRepository.runAlertCheck()` devuelve `{regions_checked, alerts_created, notified}`. Los umbrales (`weather_rain_mm`, `weather_frost_c`, `weather_heat_c`, `weather_wind_kmh`) están en `platform_config`, junto a la comisión.
 
 ---
 

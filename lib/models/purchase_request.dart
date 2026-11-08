@@ -41,6 +41,28 @@ extension NegotiationStatusLabel on NegotiationStatus {
 /// Máximo de rondas de propuesta por negociación (igual que en la BD).
 const int maxNegotiationRounds = 10;
 
+/// REQ-49: pasos del envío de un trato confirmado, en orden. El exportador
+/// avanza hasta [enPuerto]; el importador confirma [entregado].
+enum ShippingStatus { preparando, embarcado, enPuerto, entregado }
+
+extension ShippingStatusX on ShippingStatus {
+  /// Valor en la columna `negotiations.shipping_status`.
+  String get dbValue => this == ShippingStatus.enPuerto ? 'en_puerto' : name;
+
+  String get label => switch (this) {
+        ShippingStatus.preparando => 'En preparación',
+        ShippingStatus.embarcado => 'Embarcado',
+        ShippingStatus.enPuerto => 'En puerto de destino',
+        ShippingStatus.entregado => 'Entregado',
+      };
+
+  /// Quién marca este paso: el importador solo confirma la entrega.
+  bool get isBuyerStep => this == ShippingStatus.entregado;
+
+  static ShippingStatus? fromDb(String? value) =>
+      ShippingStatus.values.where((s) => s.dbValue == value).firstOrNull;
+}
+
 /// Solicitud de compra y su negociación estilo InDrive (REQ-14 a REQ-17).
 ///
 /// [proposedPricePerMt] y [requestedVolumeMt] son siempre los términos de la
@@ -67,6 +89,10 @@ class PurchaseRequest {
   /// Motivo del rechazo o la cancelación.
   final String? closeReason;
 
+  /// REQ-49: estado del envío (solo tratos confirmados; null = sin iniciar).
+  final ShippingStatus? shippingStatus;
+  final DateTime? shippingUpdatedAt;
+
   // Información enriquecida para mostrar en "My Deals"
   final String? offerVariety;
   final String? sellerName;
@@ -90,6 +116,8 @@ class PurchaseRequest {
     this.sellerConfirmedAt,
     this.confirmedAt,
     this.closeReason,
+    this.shippingStatus,
+    this.shippingUpdatedAt,
     this.offerVariety,
     this.sellerName,
     this.buyerName,
@@ -122,6 +150,23 @@ class PurchaseRequest {
       (userId == buyerId || userId == sellerId) &&
       !hasConfirmed(userId);
 
+  /// REQ-49: siguiente paso del envío, o null si no hay (sin confirmar o entregado).
+  ShippingStatus? get nextShippingStep {
+    if (status != NegotiationStatus.confirmed) return null;
+    final current = shippingStatus?.index ?? -1;
+    return current + 1 < ShippingStatus.values.length
+        ? ShippingStatus.values[current + 1]
+        : null;
+  }
+
+  /// Si [userId] puede marcar [nextShippingStep] (exportador o, para la
+  /// entrega, el importador una vez embarcada la carga).
+  bool canAdvanceShipping(String userId) {
+    final next = nextShippingStep;
+    if (next == null) return false;
+    return next.isBuyerStep ? userId == buyerId : userId == sellerId;
+  }
+
   PurchaseRequest copyWith({
     double? proposedPricePerMt,
     double? requestedVolumeMt,
@@ -134,6 +179,8 @@ class PurchaseRequest {
     DateTime? sellerConfirmedAt,
     DateTime? confirmedAt,
     String? closeReason,
+    ShippingStatus? shippingStatus,
+    DateTime? shippingUpdatedAt,
   }) {
     return PurchaseRequest(
       id: id,
@@ -153,6 +200,8 @@ class PurchaseRequest {
       sellerConfirmedAt: sellerConfirmedAt ?? this.sellerConfirmedAt,
       confirmedAt: confirmedAt ?? this.confirmedAt,
       closeReason: closeReason ?? this.closeReason,
+      shippingStatus: shippingStatus ?? this.shippingStatus,
+      shippingUpdatedAt: shippingUpdatedAt ?? this.shippingUpdatedAt,
       offerVariety: offerVariety,
       sellerName: sellerName,
       buyerName: buyerName,
@@ -178,6 +227,8 @@ class PurchaseRequest {
       sellerConfirmedAt: _parseDate(json['seller_confirmed_at']),
       confirmedAt: _parseDate(json['confirmed_at']),
       closeReason: json['close_reason'] as String?,
+      shippingStatus: ShippingStatusX.fromDb(json['shipping_status'] as String?),
+      shippingUpdatedAt: _parseDate(json['shipping_updated_at']),
       offerVariety: json['offers']?['variety'] as String?,
       sellerName: json['seller']?['name'] as String?,
       buyerName: json['buyer']?['name'] as String?,

@@ -75,6 +75,19 @@ void main() {
           _rejectedWith('employeeManagement'));
     });
 
+    test('se puede invitar a un gerente de solo consulta (REQ-46)', () async {
+      final hr = MockModerationRepository(permissions: {AdminPermission.employeeManagement});
+
+      final manager = await hr.inviteStaff(email: 'gerente@agrotrade.com', isManager: true);
+      expect(manager.isManager, isTrue);
+      expect(manager.permissions, isEmpty);
+
+      expect(
+          hr.inviteStaff(
+              email: 'otro@agrotrade.com', isManager: true, permissions: [AdminPermission.dashboard]),
+          _rejectedWith('solo consulta'));
+    });
+
     test('no se borran cuentas con tratos confirmados ni la propia', () async {
       final repo = MockModerationRepository(permissions: {AdminPermission.userManagement})
         ..usersWithConfirmedDeals.add('u-con-tratos');

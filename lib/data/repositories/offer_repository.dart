@@ -20,6 +20,29 @@ const int maxPurchaseRequestNotesLength = 500;
 abstract class OfferRepository {
   Future<List<CropOffer>> fetchOffers();
 
+  /// REQ-06 a REQ-10: el exportador publica una oferta. Se ignoran `id`,
+  /// `sellerId` y `status` del objeto recibido: la oferta queda a nombre del
+  /// usuario actual y nace `activa`. Devuelve la oferta guardada (id real).
+  Future<CropOffer> publishOffer(CropOffer offer);
+
+  /// El exportador ajusta precio, cantidad, destino o certificaciones de SU
+  /// oferta (no se puede editar una oferta confirmada o cerrada, ni bajar la
+  /// cantidad por debajo de lo comprometido en acuerdos aceptados).
+  Future<CropOffer> updateOffer(
+    String offerId, {
+    double? askPricePerMt,
+    double? volumeMt,
+    String? destinationCountry,
+    List<String>? certifications,
+  });
+
+  /// El exportador retira su oferta (`cerrada`); las solicitudes en curso se
+  /// cancelan solas. No se permite si hay un acuerdo aceptado sin confirmar.
+  Future<CropOffer> closeOffer(String offerId);
+
+  /// Ofertas del exportador actual (todas sus ofertas, en cualquier estado).
+  Future<List<CropOffer>> fetchMyOffers();
+
   /// REQ-14: el importador envía una solicitud de compra sobre una oferta.
   ///
   /// [volumeMt] es opcional: si no se envía, se pide el volumen completo de la
@@ -58,6 +81,16 @@ abstract class OfferRepository {
   /// negociación pasa a `confirmed` y el volumen se descuenta de la oferta.
   Future<PurchaseRequest> confirmNegotiation(String negotiationId);
 
+  /// REQ-49: avanza el envío de un trato confirmado. El exportador marca
+  /// preparando → embarcado → enPuerto (puede saltar pasos, nunca retroceder);
+  /// el importador marca entregado una vez embarcada la carga. La otra parte
+  /// recibe una notificación de tipo envío.
+  Future<PurchaseRequest> updateShippingStatus(
+    String negotiationId,
+    ShippingStatus status, {
+    String? note,
+  });
+
   /// REQ-16 / REQ-19: historial de propuestas de una negociación, en orden.
   Future<List<NegotiationRound>> fetchNegotiationRounds(String negotiationId);
 
@@ -93,6 +126,31 @@ void validateHistoryStatus(NegotiationStatus? status) {
   }
 }
 
+/// Validación local de una oferta antes de publicarla (la BD repite las reglas).
+void validateOfferInput({
+  required String variety,
+  required String originRegion,
+  required String destinationCountry,
+  required double askPricePerMt,
+  required double volumeMt,
+}) {
+  if (variety.trim().length < 2) {
+    throw const RepositoryException('Escribe la variedad del producto.');
+  }
+  if (originRegion.trim().length < 2) {
+    throw const RepositoryException('Escribe la región de origen.');
+  }
+  if (destinationCountry.trim().length < 2) {
+    throw const RepositoryException('Selecciona el país de destino.');
+  }
+  if (askPricePerMt <= 0) {
+    throw const RepositoryException('El precio por tonelada debe ser mayor que cero.');
+  }
+  if (volumeMt <= 0) {
+    throw const RepositoryException('La cantidad disponible debe ser mayor que cero.');
+  }
+}
+
 /// Validación local de una solicitud antes de enviarla (evita una llamada a
 /// la BD por errores evidentes). La BD repite estas reglas de todos modos.
 void validatePurchaseRequestInput({
@@ -111,6 +169,37 @@ void validatePurchaseRequestInput({
   if (notes != null && notes.length > maxPurchaseRequestNotesLength) {
     throw const RepositoryException(
         'Las notas no pueden superar los $maxPurchaseRequestNotesLength caracteres.');
+  }
+}
+
+/// REQ-49: mismas reglas que rpc('update_shipping_status')
+/// (migración 20261105030000_notifications_shipping) y mismos mensajes.
+void validateShippingUpdate(
+  PurchaseRequest neg,
+  ShippingStatus status,
+  String userId, {
+  String? note,
+}) {
+  if (neg.status != NegotiationStatus.confirmed) {
+    throw const RepositoryException('El envío se registra solo en tratos confirmados por ambas partes.');
+  }
+  if (note != null && note.trim().length > 500) {
+    throw const RepositoryException('La nota del envío no puede superar los 500 caracteres.');
+  }
+  if (status.isBuyerStep && userId != neg.buyerId) {
+    throw const RepositoryException('Solo el importador puede confirmar que recibió la carga.');
+  }
+  if (!status.isBuyerStep && userId != neg.sellerId) {
+    throw const RepositoryException(
+        'Solo el exportador actualiza el envío; el importador confirma la entrega.');
+  }
+  final current = neg.shippingStatus?.index ?? -1;
+  if (status.index <= current) {
+    throw RepositoryException('El envío ya está "${neg.shippingStatus!.label}"; solo puede avanzar.');
+  }
+  if (status.isBuyerStep && current < ShippingStatus.embarcado.index) {
+    throw const RepositoryException(
+        'No se puede confirmar la entrega de una carga que aún no ha sido embarcada.');
   }
 }
 
@@ -142,18 +231,24 @@ class MockOfferRepository implements OfferRepository {
       o.sellerId.isEmpty ? _copyOffer(o, sellerId: demoSellerId) : o;
 
   static CropOffer _copyOffer(CropOffer o,
-      {String? sellerId, double? volumeMt, OfferStatus? status}) {
+      {String? id,
+      String? sellerId,
+      double? askPricePerMt,
+      double? volumeMt,
+      String? destinationCountry,
+      List<String>? certifications,
+      OfferStatus? status}) {
     return CropOffer(
-      id: o.id,
+      id: id ?? o.id,
       sellerId: sellerId ?? o.sellerId,
       cropType: o.cropType,
       variety: o.variety,
       originRegion: o.originRegion,
       originCountry: o.originCountry,
-      askPricePerMt: o.askPricePerMt,
+      askPricePerMt: askPricePerMt ?? o.askPricePerMt,
       volumeMt: volumeMt ?? o.volumeMt,
-      destinationCountry: o.destinationCountry,
-      certifications: o.certifications,
+      destinationCountry: destinationCountry ?? o.destinationCountry,
+      certifications: certifications ?? o.certifications,
       verifiedCertifications: o.verifiedCertifications,
       sellerName: o.sellerName,
       sellerRating: o.sellerRating,
@@ -237,6 +332,99 @@ class MockOfferRepository implements OfferRepository {
       }
       return List<CropOffer>.from(_offers);
     }
+  }
+
+  CropOffer _myEditableOffer(String offerId) {
+    final offer = _offer(offerId);
+    if (offer == null || offer.sellerId != currentUserId) {
+      throw const RepositoryException('La oferta no existe o no es tuya.');
+    }
+    if (offer.status == OfferStatus.confirmada ||
+        offer.status == OfferStatus.enTransito ||
+        offer.status == OfferStatus.cerrada) {
+      throw RepositoryException('Esta oferta ya no se puede editar (estado: ${offer.status.name}).');
+    }
+    return offer;
+  }
+
+  @override
+  Future<CropOffer> publishOffer(CropOffer offer) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    validateOfferInput(
+      variety: offer.variety,
+      originRegion: offer.originRegion,
+      destinationCountry: offer.destinationCountry,
+      askPricePerMt: offer.askPricePerMt,
+      volumeMt: offer.volumeMt,
+    );
+    final saved = _copyOffer(offer,
+        id: 'offer-${_nextId++}', sellerId: currentUserId, status: OfferStatus.activa);
+    _offers.insert(0, saved);
+    return saved;
+  }
+
+  @override
+  Future<CropOffer> updateOffer(
+    String offerId, {
+    double? askPricePerMt,
+    double? volumeMt,
+    String? destinationCountry,
+    List<String>? certifications,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final offer = _myEditableOffer(offerId);
+    if (askPricePerMt != null && askPricePerMt <= 0) {
+      throw const RepositoryException('El precio por tonelada debe ser mayor que cero.');
+    }
+    if (volumeMt != null) {
+      if (volumeMt <= 0) {
+        throw const RepositoryException(
+            'La cantidad disponible debe ser mayor que cero; para retirar la oferta, ciérrala.');
+      }
+      final committed = _negotiations
+          .where((n) => n.offerId == offerId && n.status == NegotiationStatus.accepted)
+          .fold<double>(0, (sum, n) => sum + n.requestedVolumeMt);
+      if (volumeMt < committed) {
+        throw RepositoryException(
+            'No puedes bajar la cantidad a $volumeMt MT: hay $committed MT comprometidos en acuerdos aceptados.');
+      }
+    }
+    final updated = _copyOffer(offer,
+        askPricePerMt: askPricePerMt,
+        volumeMt: volumeMt,
+        destinationCountry: destinationCountry?.trim(),
+        certifications: certifications);
+    _setOffer(updated);
+    return updated;
+  }
+
+  @override
+  Future<CropOffer> closeOffer(String offerId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final offer = _myEditableOffer(offerId);
+    if (_negotiations.any((n) => n.offerId == offerId && n.status == NegotiationStatus.accepted)) {
+      throw const RepositoryException(
+          'Hay un acuerdo aceptado pendiente de confirmar: confírmalo o cancélalo antes de cerrar la oferta.');
+    }
+    for (final n in List.of(_negotiations)) {
+      if (n.offerId == offerId &&
+          (n.status == NegotiationStatus.pending || n.status == NegotiationStatus.countered)) {
+        _save(n.copyWith(
+          status: NegotiationStatus.cancelled,
+          closeReason: 'El exportador cerró la oferta.',
+          updatedAt: DateTime.now(),
+        ));
+      }
+    }
+    final closed = _copyOffer(offer, status: OfferStatus.cerrada);
+    _setOffer(closed);
+    return closed;
+  }
+
+  @override
+  Future<List<CropOffer>> fetchMyOffers() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return _offers.where((o) => o.sellerId == currentUserId).toList();
   }
 
 
@@ -444,6 +632,20 @@ class MockOfferRepository implements OfferRepository {
   @override
   Future<List<NegotiationRound>> fetchNegotiationRounds(
       String negotiationId) async {
+  Future<PurchaseRequest> updateShippingStatus(
+    String negotiationId,
+    ShippingStatus status, {
+    String? note,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final neg = _myNegotiation(negotiationId);
+    validateShippingUpdate(neg, status, currentUserId, note: note);
+    final now = DateTime.now();
+    return _save(neg.copyWith(shippingStatus: status, shippingUpdatedAt: now, updatedAt: now));
+  }
+
+  @override
+  Future<List<NegotiationRound>> fetchNegotiationRounds(String negotiationId) async {
     await Future.delayed(const Duration(milliseconds: 200));
     _myNegotiation(negotiationId);
     return _rounds.where((r) => r.negotiationId == negotiationId).toList()
