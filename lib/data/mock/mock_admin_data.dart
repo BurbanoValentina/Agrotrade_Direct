@@ -3,6 +3,7 @@ import '../../models/admin_permission.dart';
 import '../../models/app_user.dart';
 import '../../models/blocked_user.dart';
 import '../../models/negotiation.dart';
+import '../../models/purchase_request.dart';
 import '../../models/suspicious_activity.dart';
 import '../../models/user_role.dart';
 
@@ -53,6 +54,23 @@ final List<AdminEmployee> mockEmployees = [
     isSuperAdmin: false,
     isActive: true,
     createdAt: DateTime(2025, 5, 22),
+    createdBy: 'Valentina Burbano',
+  ),
+  AdminEmployee(
+    id: 'emp-004',
+    name: 'Marcela Torres',
+    email: 'marcela.torres@agrotrade.co',
+    password: 'Gerente123*',
+    permissions: const [
+      AdminPermission.dashboard,
+      AdminPermission.reports,
+      AdminPermission.security,
+      AdminPermission.negotiationManagement,
+    ],
+    isSuperAdmin: false,
+    isManager: true,
+    isActive: true,
+    createdAt: DateTime(2025, 6, 1),
     createdBy: 'Valentina Burbano',
   ),
 ];
@@ -137,8 +155,7 @@ final List<SuspiciousActivity> mockAlerts = [
   SuspiciousActivity(
     id: 'alert-001',
     type: SuspiciousType.precioAnomalo,
-    description:
-        'El usuario publicó una oferta de Cacao Criollo a \$1,200/MT, '
+    description: 'El usuario publicó una oferta de Cacao Criollo a \$1,200/MT, '
         'muy por debajo del promedio del mercado (\$6,200/MT). '
         'Posible intento de estafa con precios irrealmente bajos.',
     relatedUserId: 'usr-005',
@@ -198,7 +215,7 @@ final List<Negotiation> mockNegotiations = [
     sellerName: 'Café Primavera Export',
     originalPrice: 8400,
     proposedPrice: 7800,
-    status: NegotiationStatus.pendiente,
+    status: NegotiationStatus.pending,
     createdAt: DateTime.now().subtract(const Duration(hours: 5)),
   ),
   Negotiation(
@@ -209,7 +226,7 @@ final List<Negotiation> mockNegotiations = [
     sellerName: 'Cacao Sierra Coop',
     originalPrice: 6200,
     proposedPrice: 5900,
-    status: NegotiationStatus.aceptada,
+    status: NegotiationStatus.accepted,
     createdAt: DateTime.now().subtract(const Duration(days: 1)),
   ),
   Negotiation(
@@ -220,7 +237,7 @@ final List<Negotiation> mockNegotiations = [
     sellerName: 'Finca La Esperanza',
     originalPrice: 7100,
     proposedPrice: 6500,
-    status: NegotiationStatus.rechazada,
+    status: NegotiationStatus.rejected,
     createdAt: DateTime.now().subtract(const Duration(days: 3)),
   ),
   Negotiation(
@@ -231,7 +248,7 @@ final List<Negotiation> mockNegotiations = [
     sellerName: 'AgroSur Nariño',
     originalPrice: 5800,
     proposedPrice: 5500,
-    status: NegotiationStatus.completada,
+    status: NegotiationStatus.confirmed,
     createdAt: DateTime.now().subtract(const Duration(days: 7)),
   ),
   Negotiation(
@@ -242,7 +259,7 @@ final List<Negotiation> mockNegotiations = [
     sellerName: 'Café Primavera Export',
     originalPrice: 7900,
     proposedPrice: 7400,
-    status: NegotiationStatus.pendiente,
+    status: NegotiationStatus.pending,
     createdAt: DateTime.now().subtract(const Duration(hours: 12)),
   ),
 ];

@@ -13,12 +13,14 @@ import 'repository_exception.dart';
 abstract class ModerationRepository {
   /// Invita por correo a un empleado nuevo (crea su propia contraseña desde el
   /// enlace). Requiere `employeeManagement`; un admin normal solo otorga
-  /// permisos que él mismo tiene.
+  /// permisos que él mismo tiene. Con [isManager] se crea un gerente de solo
+  /// consulta (REQ-46): sin permisos de acción ni super admin.
   Future<StaffInvitation> inviteStaff({
     required String email,
     String? name,
     List<AdminPermission> permissions = const [],
     bool isSuperAdmin = false,
+    bool isManager = false,
   });
 
   /// Borra una cuenta (requiere `userManagement`). No se permite si tiene
@@ -76,11 +78,28 @@ class MockModerationRepository implements ModerationRepository {
     String? name,
     List<AdminPermission> permissions = const [],
     bool isSuperAdmin = false,
+    bool isManager = false,
   }) async {
     _require(AdminPermission.employeeManagement);
     final normalized = email.trim().toLowerCase();
     if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(normalized)) {
       throw const RepositoryException('El correo del empleado no es válido.');
+    }
+    if (isManager) {
+      if (isSuperAdmin || permissions.isNotEmpty) {
+        throw const RepositoryException(
+            'Un gerente solo consulta: no puede tener permisos de acción ni ser super admin.');
+      }
+      if (!_staffEmails.add(normalized)) {
+        throw const RepositoryException(
+            'Ese correo ya tiene una cuenta en AgroTrade. Usa otro correo para el empleado.');
+      }
+      return StaffInvitation(
+          userId: 'staff-${_nextId++}',
+          email: normalized,
+          permissions: const [],
+          isSuperAdmin: false,
+          isManager: true);
     }
     if (!this.isSuperAdmin) {
       if (isSuperAdmin) {

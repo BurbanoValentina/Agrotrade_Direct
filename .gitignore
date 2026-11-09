@@ -48,6 +48,8 @@ replay_pid*
 /android/app/debug/
 /android/app/profile/
 /android/app/release/
+/android/assets/
+/android/build/
 
 # Environment files and local secrets
 .env
@@ -72,4 +74,3 @@ app.*.map.json
 .widget_preview/
 
 lib/core/constants/supabase_constants.dart
-

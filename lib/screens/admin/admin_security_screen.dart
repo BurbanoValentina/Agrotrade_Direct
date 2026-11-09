@@ -21,6 +21,80 @@ class AdminSecurityScreen extends StatelessWidget {
       length: 2,
       child: Column(
         children: [
+          // Banner de Seguridad Operativa
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              border: Border(bottom: BorderSide(color: colors.border)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+                      ),
+                      child: const Icon(Icons.shield_rounded, color: Colors.redAccent, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Módulo de Ciberseguridad & Antifraude',
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                        Text(
+                          'Detección de precios anómalos, evasión de comisiones y cuentas sospechosas',
+                          style: TextStyle(color: colors.textSecondary, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceAlt,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: colors.border),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: pendingAlerts > 0 ? Colors.redAccent : const Color(0xFF10B981),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        pendingAlerts > 0 ? '$pendingAlerts incidentes' : 'Normal',
+                        style: TextStyle(
+                          color: pendingAlerts > 0 ? Colors.redAccent : const Color(0xFF10B981),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
@@ -29,24 +103,24 @@ class AdminSecurityScreen extends StatelessWidget {
             ),
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
+                constraints: const BoxConstraints(maxWidth: 550),
                 child: Container(
                   height: 44,
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: colors.surfaceAlt,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: colors.border),
                   ),
                   child: TabBar(
                     indicator: BoxDecoration(
                       color: colors.surface,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: colors.gold.withValues(alpha: 0.5)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: colors.isDark ? 0.2 : 0.05),
-                          blurRadius: 4,
+                          color: Colors.black.withValues(alpha: colors.isDark ? 0.25 : 0.05),
+                          blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
                       ],
@@ -54,7 +128,7 @@ class AdminSecurityScreen extends StatelessWidget {
                     indicatorSize: TabBarIndicatorSize.tab,
                     labelColor: colors.gold,
                     unselectedLabelColor: colors.textSecondary,
-                    labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                     unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     tabs: [
                       Tab(
@@ -332,29 +406,211 @@ class _AlertsTab extends StatelessWidget {
       );
     }
 
-    return ResponsiveContainer(
-      maxWidth: 900,
-      padding: const EdgeInsets.all(16),
-      child: ListView.separated(
-        itemCount: alerts.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 14),
-        itemBuilder: (context, index) {
-          final alert = alerts[index];
-          final isPending = alert.status == AlertStatus.pendiente;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 980;
 
-          final (severityColor, severityBg) = switch (alert.severity) {
-            AlertSeverity.baja => (const Color(0xFF3B82F6), const Color(0xFF3B82F6).withValues(alpha: 0.1)),
-            AlertSeverity.media => (colors.gold, colors.gold.withValues(alpha: 0.1)),
-            AlertSeverity.alta => (const Color(0xFFF97316), const Color(0xFFF97316).withValues(alpha: 0.1)),
-            AlertSeverity.critica => (const Color(0xFFEF4444), const Color(0xFFEF4444).withValues(alpha: 0.12)),
-          };
+        if (!isWide) {
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: alerts.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 14),
+            itemBuilder: (context, index) => _buildAlertCard(context, alerts[index], colors, admin, dateFormat),
+          );
+        }
 
-          final typeIcon = switch (alert.type) {
-            SuspiciousType.precioAnomalo => Icons.trending_down_rounded,
-            SuspiciousType.multiplesCuentas => Icons.people_alt_outlined,
-            SuspiciousType.patronInusual => Icons.psychology_alt_outlined,
-            SuspiciousType.intentoFraude => Icons.gavel_rounded,
-          };
+        // Split-Layout Panorámico de pantalla completa en Desktop
+        final criticasCount = alerts.where((a) => a.severity == AlertSeverity.critica).length;
+        final altasCount = alerts.where((a) => a.severity == AlertSeverity.alta).length;
+        final mediasCount = alerts.where((a) => a.severity == AlertSeverity.media).length;
+        final bajasCount = alerts.where((a) => a.severity == AlertSeverity.baja).length;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 20.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Panel Izquierdo (360px): Resumen de Severidad, Estado de Cortafuegos y Reglas
+              SizedBox(
+                width: 360,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: colors.surface,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: colors.border),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: colors.isDark ? 0.25 : 0.03),
+                              blurRadius: 14,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.redAccent.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(Icons.security_update_warning_rounded, color: Colors.redAccent, size: 20),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Matriz de Severidad',
+                                  style: TextStyle(
+                                    color: colors.textPrimary,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            _buildSeverityRow('Crítica', criticasCount, const Color(0xFFEF4444), colors),
+                            const SizedBox(height: 10),
+                            _buildSeverityRow('Alta', altasCount, const Color(0xFFF97316), colors),
+                            const SizedBox(height: 10),
+                            _buildSeverityRow('Media', mediasCount, colors.gold, colors),
+                            const SizedBox(height: 10),
+                            _buildSeverityRow('Baja', bajasCount, const Color(0xFF3B82F6), colors),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              colors.surface,
+                              colors.surfaceAlt,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF10B981),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'ESCUDO ACTIVO 24/7',
+                                  style: TextStyle(
+                                    color: Color(0xFF10B981),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.6,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Motor de Detección Heurística',
+                              style: TextStyle(
+                                color: colors.textPrimary,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Monitoreando desvíos > 30% respecto al índice ICE, saltos de IP transfronterizos y duplicación de documentos.',
+                              style: TextStyle(color: colors.textSecondary, fontSize: 12, height: 1.4),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 24),
+
+              // Panel Derecho: Lista Panorámica de Alertas en Vivo
+              Expanded(
+                child: ListView.separated(
+                  itemCount: alerts.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 14),
+                  itemBuilder: (context, index) => _buildAlertCard(context, alerts[index], colors, admin, dateFormat),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSeverityRow(String label, int count, Color color, dynamic colors) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withValues(alpha: 0.4)),
+          ),
+          child: Text(
+            '$count',
+            style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 12),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAlertCard(BuildContext context, SuspiciousActivity alert, dynamic colors, AdminProvider admin, DateFormat dateFormat) {
+    final isPending = alert.status == AlertStatus.pendiente;
+
+    final (severityColor, severityBg) = switch (alert.severity) {
+      AlertSeverity.baja => (const Color(0xFF3B82F6), const Color(0xFF3B82F6).withValues(alpha: 0.1)),
+      AlertSeverity.media => (colors.gold, colors.gold.withValues(alpha: 0.1)),
+      AlertSeverity.alta => (const Color(0xFFF97316), const Color(0xFFF97316).withValues(alpha: 0.1)),
+      AlertSeverity.critica => (const Color(0xFFEF4444), const Color(0xFFEF4444).withValues(alpha: 0.12)),
+    };
+
+    final typeIcon = switch (alert.type) {
+      SuspiciousType.precioAnomalo => Icons.trending_down_rounded,
+      SuspiciousType.multiplesCuentas => Icons.people_alt_outlined,
+      SuspiciousType.patronInusual => Icons.psychology_alt_outlined,
+      SuspiciousType.intentoFraude => Icons.gavel_rounded,
+    };
 
           return Container(
             decoration: BoxDecoration(
@@ -498,7 +754,7 @@ class _AlertsTab extends StatelessWidget {
                         const SizedBox(height: 12),
 
                         // Action buttons or Status indicator
-                        if (isPending)
+                        if (isPending && !admin.isManager)
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -540,6 +796,35 @@ class _AlertsTab extends StatelessWidget {
                                 icon: const Icon(Icons.block_rounded, size: 16),
                                 label: const Text('Bloquear Perfil', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
                                 onPressed: () => _showBlockDialog(context, admin, alert),
+                              ),
+                            ],
+                          )
+                        else if (isPending && admin.isManager)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.visibility_rounded, size: 14, color: Colors.amber),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Solo lectura (Gerente)',
+                                      style: TextStyle(
+                                        color: Colors.amber,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           )
@@ -585,9 +870,6 @@ class _AlertsTab extends StatelessWidget {
               ),
             ),
           );
-        },
-      ),
-    );
   }
 }
 
@@ -791,21 +1073,23 @@ class _BlockedUsersTab extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: colors.gold,
-                            side: BorderSide(color: colors.gold),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      if (!admin.isManager) ...[
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: colors.gold,
+                              side: BorderSide(color: colors.gold),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            icon: const Icon(Icons.lock_open_rounded, size: 16),
+                            onPressed: () => _confirmUnblock(context, admin, user),
+                            label: const Text('Desbloquear Usuario', style: TextStyle(fontWeight: FontWeight.w700)),
                           ),
-                          icon: const Icon(Icons.lock_open_rounded, size: 16),
-                          onPressed: () => _confirmUnblock(context, admin, user),
-                          label: const Text('Desbloquear Usuario', style: TextStyle(fontWeight: FontWeight.w700)),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),

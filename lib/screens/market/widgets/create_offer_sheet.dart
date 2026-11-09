@@ -112,8 +112,9 @@ class __CreateOfferSheetContentState extends State<_CreateOfferSheetContent> {
                       selected: _cropType == CropType.cacao,
                       selectedColor: AppColors.gold,
                       onSelected: (selected) {
-                        if (selected)
+                        if (selected) {
                           setState(() => _cropType = CropType.cacao);
+                        }
                       },
                     ),
                   ),

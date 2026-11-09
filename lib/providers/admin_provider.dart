@@ -34,6 +34,7 @@ class AdminProvider extends ChangeNotifier {
   }
 
   bool get isSuperAdmin => _currentEmployee?.isSuperAdmin ?? false;
+  bool get isManager => _currentEmployee?.isManager ?? false;
 
   // ── Datos cargados ────────────────────────────────────────────────
   List<AdminEmployee> _employees = [];
@@ -95,6 +96,18 @@ class AdminProvider extends ChangeNotifier {
   // ── Carga de datos ────────────────────────────────────────────────
 
   Future<void> _loadAllData() async {
+    if (isManager) {
+      _employees = [];
+      _users = [];
+      _blockedUsers = [];
+      _alerts = [];
+      _offers = [];
+      _negotiations = [];
+      _config = defaultPlatformConfig;
+      _stats = await _repository.getDashboardStats();
+      return;
+    }
+
     _employees = await _repository.getEmployees();
     _users = await _repository.getRegisteredUsers();
     _blockedUsers = await _repository.getBlockedUsers();
@@ -124,6 +137,7 @@ class AdminProvider extends ChangeNotifier {
   /// Crea un nuevo empleado con contraseña autogenerada.
   /// Devuelve el empleado creado (contiene la contraseña generada).
   Future<AdminEmployee?> createEmployee(String name, String email) async {
+    _requireNotManager();
     _setLoading(true);
     try {
       final employee = await _repository.createEmployee(
@@ -148,13 +162,16 @@ class AdminProvider extends ChangeNotifier {
     String employeeId,
     List<AdminPermission> permissions,
     bool isSuperAdmin,
+    {bool? isManager}
   ) async {
+    _requireNotManager();
     final index = _employees.indexWhere((e) => e.id == employeeId);
     if (index == -1) return;
 
     final updated = _employees[index].copyWith(
       permissions: permissions,
       isSuperAdmin: isSuperAdmin,
+      isManager: isManager ?? _employees[index].isManager,
     );
     await _repository.updateEmployee(updated);
     _employees[index] = updated;
@@ -162,6 +179,7 @@ class AdminProvider extends ChangeNotifier {
   }
 
   Future<void> toggleEmployeeActive(String employeeId) async {
+    _requireNotManager();
     final index = _employees.indexWhere((e) => e.id == employeeId);
     if (index == -1) return;
 
@@ -173,6 +191,7 @@ class AdminProvider extends ChangeNotifier {
   }
 
   Future<void> deleteEmployee(String employeeId) async {
+    _requireNotManager();
     await _repository.deleteEmployee(employeeId);
     _employees.removeWhere((e) => e.id == employeeId);
     notifyListeners();
@@ -181,6 +200,7 @@ class AdminProvider extends ChangeNotifier {
   // ── Gestión de usuarios ───────────────────────────────────────────
 
   Future<void> deleteUser(String userId) async {
+    _requireNotManager();
     await _repository.deleteUser(userId);
     _users.removeWhere((u) => u.id == userId);
     await refreshStats();
@@ -194,6 +214,7 @@ class AdminProvider extends ChangeNotifier {
     String userEmail,
     String reason,
   ) async {
+    _requireNotManager();
     final blocked = BlockedUser(
       userId: userId,
       userName: userName,
@@ -209,6 +230,7 @@ class AdminProvider extends ChangeNotifier {
   }
 
   Future<void> unblockUser(String userId) async {
+    _requireNotManager();
     await _repository.unblockUser(userId);
     _blockedUsers.removeWhere((b) => b.userId == userId);
     await refreshStats();
@@ -221,6 +243,7 @@ class AdminProvider extends ChangeNotifier {
   // ── Alertas de seguridad ──────────────────────────────────────────
 
   Future<void> updateAlertStatus(String alertId, AlertStatus status) async {
+    _requireNotManager();
     await _repository.updateActivityStatus(alertId, status);
     final index = _alerts.indexWhere((a) => a.id == alertId);
     if (index != -1) {
@@ -232,6 +255,7 @@ class AdminProvider extends ChangeNotifier {
   // ── Gestión de ofertas ────────────────────────────────────────────
 
   Future<void> deleteOffer(String offerId) async {
+    _requireNotManager();
     await _repository.deleteOffer(offerId);
     _offers.removeWhere((o) => o.id == offerId);
     await refreshStats();
@@ -240,12 +264,19 @@ class AdminProvider extends ChangeNotifier {
   // ── Configuración de plataforma ───────────────────────────────────
 
   Future<void> updateConfig(PlatformConfig config) async {
+    _requireNotManager();
     await _repository.updatePlatformConfig(config);
     _config = config;
     notifyListeners();
   }
 
   // ── Helpers ───────────────────────────────────────────────────────
+
+  void _requireNotManager() {
+    if (isManager) {
+      throw StateError('Los gerentes solo pueden consultar métricas y reportes.');
+    }
+  }
 
   void _setLoading(bool value) {
     _isLoading = value;

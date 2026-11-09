@@ -20,6 +20,29 @@ const int maxPurchaseRequestNotesLength = 500;
 abstract class OfferRepository {
   Future<List<CropOffer>> fetchOffers();
 
+  /// REQ-06 a REQ-10: el exportador publica una oferta. Se ignoran `id`,
+  /// `sellerId` y `status` del objeto recibido: la oferta queda a nombre del
+  /// usuario actual y nace `activa`. Devuelve la oferta guardada (id real).
+  Future<CropOffer> publishOffer(CropOffer offer);
+
+  /// El exportador ajusta precio, cantidad, destino o certificaciones de SU
+  /// oferta (no se puede editar una oferta confirmada o cerrada, ni bajar la
+  /// cantidad por debajo de lo comprometido en acuerdos aceptados).
+  Future<CropOffer> updateOffer(
+    String offerId, {
+    double? askPricePerMt,
+    double? volumeMt,
+    String? destinationCountry,
+    List<String>? certifications,
+  });
+
+  /// El exportador retira su oferta (`cerrada`); las solicitudes en curso se
+  /// cancelan solas. No se permite si hay un acuerdo aceptado sin confirmar.
+  Future<CropOffer> closeOffer(String offerId);
+
+  /// Ofertas del exportador actual (todas sus ofertas, en cualquier estado).
+  Future<List<CropOffer>> fetchMyOffers();
+
   /// REQ-14: el importador envía una solicitud de compra sobre una oferta.
   ///
   /// [volumeMt] es opcional: si no se envía, se pide el volumen completo de la
@@ -46,15 +69,27 @@ abstract class OfferRepository {
   Future<PurchaseRequest> acceptPurchaseRequest(String negotiationId);
 
   /// REQ-15: quien tiene el turno rechaza la propuesta vigente → `rejected`.
-  Future<PurchaseRequest> rejectPurchaseRequest(String negotiationId, {String? reason});
+  Future<PurchaseRequest> rejectPurchaseRequest(String negotiationId,
+      {String? reason});
 
   /// El importador retira su solicitud en curso, o cualquiera de las partes se
   /// echa atrás después de aceptar y antes de confirmar → `cancelled`.
-  Future<PurchaseRequest> cancelNegotiation(String negotiationId, {String? reason});
+  Future<PurchaseRequest> cancelNegotiation(String negotiationId,
+      {String? reason});
 
   /// REQ-17: el usuario confirma el acuerdo. Cuando confirman ambas partes la
   /// negociación pasa a `confirmed` y el volumen se descuenta de la oferta.
   Future<PurchaseRequest> confirmNegotiation(String negotiationId);
+
+  /// REQ-49: avanza el envío de un trato confirmado. El exportador marca
+  /// preparando → embarcado → enPuerto (puede saltar pasos, nunca retroceder);
+  /// el importador marca entregado una vez embarcada la carga. La otra parte
+  /// recibe una notificación de tipo envío.
+  Future<PurchaseRequest> updateShippingStatus(
+    String negotiationId,
+    ShippingStatus status, {
+    String? note,
+  });
 
   /// REQ-16 / REQ-19: historial de propuestas de una negociación, en orden.
   Future<List<NegotiationRound>> fetchNegotiationRounds(String negotiationId);
@@ -91,6 +126,31 @@ void validateHistoryStatus(NegotiationStatus? status) {
   }
 }
 
+/// Validación local de una oferta antes de publicarla (la BD repite las reglas).
+void validateOfferInput({
+  required String variety,
+  required String originRegion,
+  required String destinationCountry,
+  required double askPricePerMt,
+  required double volumeMt,
+}) {
+  if (variety.trim().length < 2) {
+    throw const RepositoryException('Escribe la variedad del producto.');
+  }
+  if (originRegion.trim().length < 2) {
+    throw const RepositoryException('Escribe la región de origen.');
+  }
+  if (destinationCountry.trim().length < 2) {
+    throw const RepositoryException('Selecciona el país de destino.');
+  }
+  if (askPricePerMt <= 0) {
+    throw const RepositoryException('El precio por tonelada debe ser mayor que cero.');
+  }
+  if (volumeMt <= 0) {
+    throw const RepositoryException('La cantidad disponible debe ser mayor que cero.');
+  }
+}
+
 /// Validación local de una solicitud antes de enviarla (evita una llamada a
 /// la BD por errores evidentes). La BD repite estas reglas de todos modos.
 void validatePurchaseRequestInput({
@@ -99,10 +159,12 @@ void validatePurchaseRequestInput({
   String? notes,
 }) {
   if (proposedPricePerMt <= 0) {
-    throw const RepositoryException('El precio propuesto debe ser mayor que cero.');
+    throw const RepositoryException(
+        'El precio propuesto debe ser mayor que cero.');
   }
   if (volumeMt != null && volumeMt <= 0) {
-    throw const RepositoryException('El volumen solicitado debe ser mayor que cero.');
+    throw const RepositoryException(
+        'El volumen solicitado debe ser mayor que cero.');
   }
   if (notes != null && notes.length > maxPurchaseRequestNotesLength) {
     throw const RepositoryException(
@@ -110,20 +172,49 @@ void validatePurchaseRequestInput({
   }
 }
 
-/// Implementación en memoria con datos de ejemplo y caché local para modo offline (REQ-27).
-class MockOfferRepository implements OfferRepository {
-  MockOfferRepository([LocalStorageService? storageService])
-      : _storageService = storageService ?? LocalStorageService();
+/// REQ-49: mismas reglas que rpc('update_shipping_status')
+/// (migración 20261105030000_notifications_shipping) y mismos mensajes.
+void validateShippingUpdate(
+  PurchaseRequest neg,
+  ShippingStatus status,
+  String userId, {
+  String? note,
+}) {
+  if (neg.status != NegotiationStatus.confirmed) {
+    throw const RepositoryException('El envío se registra solo en tratos confirmados por ambas partes.');
+  }
+  if (note != null && note.trim().length > 500) {
+    throw const RepositoryException('La nota del envío no puede superar los 500 caracteres.');
+  }
+  if (status.isBuyerStep && userId != neg.buyerId) {
+    throw const RepositoryException('Solo el importador puede confirmar que recibió la carga.');
+  }
+  if (!status.isBuyerStep && userId != neg.sellerId) {
+    throw const RepositoryException(
+        'Solo el exportador actualiza el envío; el importador confirma la entrega.');
+  }
+  final current = neg.shippingStatus?.index ?? -1;
+  if (status.index <= current) {
+    throw RepositoryException('El envío ya está "${neg.shippingStatus!.label}"; solo puede avanzar.');
+  }
+  if (status.isBuyerStep && current < ShippingStatus.embarcado.index) {
+    throw const RepositoryException(
+        'No se puede confirmar la entrega de una carga que aún no ha sido embarcada.');
+  }
+}
 
-  final LocalStorageService _storageService;
 /// Implementación en memoria con datos de ejemplo para pruebas offline.
 ///
 /// Replica las reglas de la BD (migraciones 20260925040000_purchase_request_rules
 /// y 20260926000000_negotiation_flow). Como no hay login real, las acciones se
 /// hacen en nombre de [currentUserId]: por defecto el importador demo; en las
 /// pruebas se cambia a [demoSellerId] para actuar como exportador.
+/// REQ-27: Incluye caché local para modo offline.
 class MockOfferRepository implements OfferRepository {
-  MockOfferRepository({this.currentUserId = demoBuyerId});
+  MockOfferRepository({this.currentUserId = demoBuyerId, LocalStorageService? storageService})
+      : _storageService = storageService ?? LocalStorageService();
+
+  final LocalStorageService _storageService;
 
   static const demoBuyerId = 'demo-buyer';
   static const demoSellerId = 'demo-seller';
@@ -140,18 +231,24 @@ class MockOfferRepository implements OfferRepository {
       o.sellerId.isEmpty ? _copyOffer(o, sellerId: demoSellerId) : o;
 
   static CropOffer _copyOffer(CropOffer o,
-      {String? sellerId, double? volumeMt, OfferStatus? status}) {
+      {String? id,
+      String? sellerId,
+      double? askPricePerMt,
+      double? volumeMt,
+      String? destinationCountry,
+      List<String>? certifications,
+      OfferStatus? status}) {
     return CropOffer(
-      id: o.id,
+      id: id ?? o.id,
       sellerId: sellerId ?? o.sellerId,
       cropType: o.cropType,
       variety: o.variety,
       originRegion: o.originRegion,
       originCountry: o.originCountry,
-      askPricePerMt: o.askPricePerMt,
+      askPricePerMt: askPricePerMt ?? o.askPricePerMt,
       volumeMt: volumeMt ?? o.volumeMt,
-      destinationCountry: o.destinationCountry,
-      certifications: o.certifications,
+      destinationCountry: destinationCountry ?? o.destinationCountry,
+      certifications: certifications ?? o.certifications,
       verifiedCertifications: o.verifiedCertifications,
       sellerName: o.sellerName,
       sellerRating: o.sellerRating,
@@ -171,7 +268,8 @@ class MockOfferRepository implements OfferRepository {
   void _refreshOfferStatus(String offerId) {
     final offer = _offer(offerId);
     if (offer == null ||
-        (offer.status != OfferStatus.activa && offer.status != OfferStatus.negociando)) {
+        (offer.status != OfferStatus.activa &&
+            offer.status != OfferStatus.negociando)) {
       return;
     }
     final hasLive =
@@ -182,18 +280,22 @@ class MockOfferRepository implements OfferRepository {
 
   PurchaseRequest _myNegotiation(String id) {
     final neg = _negotiations.where((n) => n.id == id).firstOrNull;
-    if (neg == null || (currentUserId != neg.buyerId && currentUserId != neg.sellerId)) {
-      throw const RepositoryException('La negociación no existe o no participas en ella.');
+    if (neg == null ||
+        (currentUserId != neg.buyerId && currentUserId != neg.sellerId)) {
+      throw const RepositoryException(
+          'La negociación no existe o no participas en ella.');
     }
     return neg;
   }
 
   PurchaseRequest _save(PurchaseRequest updated) {
-    _negotiations[_negotiations.indexWhere((n) => n.id == updated.id)] = updated;
+    _negotiations[_negotiations.indexWhere((n) => n.id == updated.id)] =
+        updated;
     return updated;
   }
 
-  void _addRound(PurchaseRequest neg, double price, double volume, String? message) {
+  void _addRound(
+      PurchaseRequest neg, double price, double volume, String? message) {
     _rounds.add(NegotiationRound(
       id: 'round-${_nextId++}',
       negotiationId: neg.id,
@@ -201,7 +303,8 @@ class MockOfferRepository implements OfferRepository {
       proposedBy: currentUserId,
       pricePerMt: price,
       volumeMt: volume,
-      message: (message == null || message.trim().isEmpty) ? null : message.trim(),
+      message:
+          (message == null || message.trim().isEmpty) ? null : message.trim(),
       createdAt: DateTime.now(),
     ));
   }
@@ -218,23 +321,112 @@ class MockOfferRepository implements OfferRepository {
   Future<List<CropOffer>> fetchOffers() async {
     await Future.delayed(const Duration(milliseconds: 400));
     try {
-      // 1. Obtenemos las ofertas iniciales o mock
-      final offers = List<CropOffer>.from(mockOffers);
-
-      // 2. REQ-27: Guardamos automáticamente una copia en la memoria del teléfono
-      await _storageService.cacheOffers(offers);
-
-      return offers;
+      // REQ-27: Guardamos automáticamente una copia en la memoria del teléfono
+      await _storageService.cacheOffers(_offers);
+      return List<CropOffer>.from(_offers);
     } catch (e) {
-      // 3. REQ-27: Si falla la red/fuente, devolvemos lo que esté guardado en caché
+      // REQ-27: Si falla, devolvemos lo que esté guardado en caché
       final cached = await _storageService.getCachedOffers();
       if (cached.isNotEmpty) {
         return cached;
       }
-      rethrow;
+      return List<CropOffer>.from(_offers);
     }
-    return List<CropOffer>.from(_offers);
   }
+
+  CropOffer _myEditableOffer(String offerId) {
+    final offer = _offer(offerId);
+    if (offer == null || offer.sellerId != currentUserId) {
+      throw const RepositoryException('La oferta no existe o no es tuya.');
+    }
+    if (offer.status == OfferStatus.confirmada ||
+        offer.status == OfferStatus.enTransito ||
+        offer.status == OfferStatus.cerrada) {
+      throw RepositoryException('Esta oferta ya no se puede editar (estado: ${offer.status.name}).');
+    }
+    return offer;
+  }
+
+  @override
+  Future<CropOffer> publishOffer(CropOffer offer) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    validateOfferInput(
+      variety: offer.variety,
+      originRegion: offer.originRegion,
+      destinationCountry: offer.destinationCountry,
+      askPricePerMt: offer.askPricePerMt,
+      volumeMt: offer.volumeMt,
+    );
+    final saved = _copyOffer(offer,
+        id: 'offer-${_nextId++}', sellerId: currentUserId, status: OfferStatus.activa);
+    _offers.insert(0, saved);
+    return saved;
+  }
+
+  @override
+  Future<CropOffer> updateOffer(
+    String offerId, {
+    double? askPricePerMt,
+    double? volumeMt,
+    String? destinationCountry,
+    List<String>? certifications,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final offer = _myEditableOffer(offerId);
+    if (askPricePerMt != null && askPricePerMt <= 0) {
+      throw const RepositoryException('El precio por tonelada debe ser mayor que cero.');
+    }
+    if (volumeMt != null) {
+      if (volumeMt <= 0) {
+        throw const RepositoryException(
+            'La cantidad disponible debe ser mayor que cero; para retirar la oferta, ciérrala.');
+      }
+      final committed = _negotiations
+          .where((n) => n.offerId == offerId && n.status == NegotiationStatus.accepted)
+          .fold<double>(0, (sum, n) => sum + n.requestedVolumeMt);
+      if (volumeMt < committed) {
+        throw RepositoryException(
+            'No puedes bajar la cantidad a $volumeMt MT: hay $committed MT comprometidos en acuerdos aceptados.');
+      }
+    }
+    final updated = _copyOffer(offer,
+        askPricePerMt: askPricePerMt,
+        volumeMt: volumeMt,
+        destinationCountry: destinationCountry?.trim(),
+        certifications: certifications);
+    _setOffer(updated);
+    return updated;
+  }
+
+  @override
+  Future<CropOffer> closeOffer(String offerId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final offer = _myEditableOffer(offerId);
+    if (_negotiations.any((n) => n.offerId == offerId && n.status == NegotiationStatus.accepted)) {
+      throw const RepositoryException(
+          'Hay un acuerdo aceptado pendiente de confirmar: confírmalo o cancélalo antes de cerrar la oferta.');
+    }
+    for (final n in List.of(_negotiations)) {
+      if (n.offerId == offerId &&
+          (n.status == NegotiationStatus.pending || n.status == NegotiationStatus.countered)) {
+        _save(n.copyWith(
+          status: NegotiationStatus.cancelled,
+          closeReason: 'El exportador cerró la oferta.',
+          updatedAt: DateTime.now(),
+        ));
+      }
+    }
+    final closed = _copyOffer(offer, status: OfferStatus.cerrada);
+    _setOffer(closed);
+    return closed;
+  }
+
+  @override
+  Future<List<CropOffer>> fetchMyOffers() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return _offers.where((o) => o.sellerId == currentUserId).toList();
+  }
+
 
   @override
   Future<void> sendCounterOffer({
@@ -244,7 +436,6 @@ class MockOfferRepository implements OfferRepository {
     String? notes,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
-    return true;
     validatePurchaseRequestInput(
       proposedPricePerMt: proposedPricePerMt,
       volumeMt: volumeMt,
@@ -255,7 +446,8 @@ class MockOfferRepository implements OfferRepository {
     if (offer == null) {
       throw const RepositoryException('La oferta no existe o fue eliminada.');
     }
-    if (offer.status != OfferStatus.activa && offer.status != OfferStatus.negociando) {
+    if (offer.status != OfferStatus.activa &&
+        offer.status != OfferStatus.negociando) {
       throw RepositoryException(
           'Esta oferta ya no recibe solicitudes (estado: ${offer.status.name}).');
     }
@@ -267,7 +459,8 @@ class MockOfferRepository implements OfferRepository {
     final hasActive = _negotiations.any((n) =>
         n.offerId == offerId && n.buyerId == currentUserId && n.status.isLive);
     if (hasActive) {
-      throw const RepositoryException('Ya tienes una solicitud activa para esta oferta.');
+      throw const RepositoryException(
+          'Ya tienes una solicitud activa para esta oferta.');
     }
 
     final now = DateTime.now();
@@ -298,7 +491,8 @@ class MockOfferRepository implements OfferRepository {
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final neg = _myNegotiation(negotiationId);
-    if (neg.status != NegotiationStatus.pending && neg.status != NegotiationStatus.countered) {
+    if (neg.status != NegotiationStatus.pending &&
+        neg.status != NegotiationStatus.countered) {
       throw RepositoryException(
           'Esta negociación ya no admite contraofertas (estado: ${neg.status.name}).');
     }
@@ -308,10 +502,12 @@ class MockOfferRepository implements OfferRepository {
           'Se alcanzó el límite de $maxNegotiationRounds rondas: solo puedes aceptar o rechazar.');
     }
     final volume = volumeMt ?? neg.requestedVolumeMt;
-    validatePurchaseRequestInput(proposedPricePerMt: pricePerMt, volumeMt: volume, notes: message);
+    validatePurchaseRequestInput(
+        proposedPricePerMt: pricePerMt, volumeMt: volume, notes: message);
     final available = _offer(neg.offerId)?.volumeMt ?? 0;
     if (volume > available) {
-      throw RepositoryException('El volumen ($volume MT) supera el disponible ($available MT).');
+      throw RepositoryException(
+          'El volumen ($volume MT) supera el disponible ($available MT).');
     }
 
     final updated = _save(neg.copyWith(
@@ -344,7 +540,8 @@ class MockOfferRepository implements OfferRepository {
   }
 
   @override
-  Future<PurchaseRequest> rejectPurchaseRequest(String negotiationId, {String? reason}) async {
+  Future<PurchaseRequest> rejectPurchaseRequest(String negotiationId,
+      {String? reason}) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final neg = _myNegotiation(negotiationId);
     _requireTurn(neg, 'No es tu turno: espera la respuesta de la otra parte.');
@@ -358,16 +555,19 @@ class MockOfferRepository implements OfferRepository {
   }
 
   @override
-  Future<PurchaseRequest> cancelNegotiation(String negotiationId, {String? reason}) async {
+  Future<PurchaseRequest> cancelNegotiation(String negotiationId,
+      {String? reason}) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final neg = _myNegotiation(negotiationId);
-    if (neg.status == NegotiationStatus.pending || neg.status == NegotiationStatus.countered) {
+    if (neg.status == NegotiationStatus.pending ||
+        neg.status == NegotiationStatus.countered) {
       if (currentUserId != neg.buyerId) {
         throw const RepositoryException(
             'Solo el importador puede cancelar una solicitud en curso; el exportador puede rechazarla en su turno.');
       }
     } else if (neg.status != NegotiationStatus.accepted) {
-      throw RepositoryException('Esta negociación ya está cerrada (estado: ${neg.status.name}).');
+      throw RepositoryException(
+          'Esta negociación ya está cerrada (estado: ${neg.status.name}).');
     }
     final updated = _save(neg.copyWith(
       status: NegotiationStatus.cancelled,
@@ -395,7 +595,9 @@ class MockOfferRepository implements OfferRepository {
     neg = _save(currentUserId == neg.buyerId
         ? neg.copyWith(buyerConfirmedAt: now, updatedAt: now)
         : neg.copyWith(sellerConfirmedAt: now, updatedAt: now));
-    if (neg.buyerConfirmedAt == null || neg.sellerConfirmedAt == null) return neg;
+    if (neg.buyerConfirmedAt == null || neg.sellerConfirmedAt == null) {
+      return neg;
+    }
 
     // Segunda confirmación: se cierra el trato.
     final offer = _offer(neg.offerId)!;
@@ -404,7 +606,8 @@ class MockOfferRepository implements OfferRepository {
           'El volumen (${neg.requestedVolumeMt} MT) ya no está disponible (quedan ${offer.volumeMt} MT). Cancela y negocia de nuevo.');
     }
     final remaining = offer.volumeMt - neg.requestedVolumeMt;
-    neg = _save(neg.copyWith(status: NegotiationStatus.confirmed, confirmedAt: now));
+    neg = _save(
+        neg.copyWith(status: NegotiationStatus.confirmed, confirmedAt: now));
     _setOffer(_copyOffer(offer,
         volumeMt: remaining,
         status: remaining == 0 ? OfferStatus.confirmada : offer.status));
@@ -424,6 +627,19 @@ class MockOfferRepository implements OfferRepository {
     }
     _refreshOfferStatus(offer.id);
     return neg;
+  }
+
+  @override
+  Future<PurchaseRequest> updateShippingStatus(
+    String negotiationId,
+    ShippingStatus status, {
+    String? note,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final neg = _myNegotiation(negotiationId);
+    validateShippingUpdate(neg, status, currentUserId, note: note);
+    final now = DateTime.now();
+    return _save(neg.copyWith(shippingStatus: status, shippingUpdatedAt: now, updatedAt: now));
   }
 
   @override
@@ -477,8 +693,9 @@ class MockOfferRepository implements OfferRepository {
         myRole: isBuyer ? 'comprador' : 'vendedor',
         buyerName: _demoName(n.buyerId),
         sellerName: offer?.sellerName ?? _demoName(n.sellerId),
-        counterpartyName:
-            isBuyer ? (offer?.sellerName ?? _demoName(n.sellerId)) : _demoName(n.buyerId),
+        counterpartyName: isBuyer
+            ? (offer?.sellerName ?? _demoName(n.sellerId))
+            : _demoName(n.buyerId),
         status: n.status,
         statusLabel: n.status.label,
         pricePerMt: n.proposedPricePerMt,
@@ -495,7 +712,8 @@ class MockOfferRepository implements OfferRepository {
   }
 
   @override
-  Future<List<TimelineEvent>> fetchNegotiationTimeline(String negotiationId) async {
+  Future<List<TimelineEvent>> fetchNegotiationTimeline(
+      String negotiationId) async {
     await Future.delayed(const Duration(milliseconds: 200));
     final n = _myNegotiation(negotiationId);
 
@@ -517,7 +735,8 @@ class MockOfferRepository implements OfferRepository {
         TimelineEvent(
           at: n.acceptedAt!,
           type: 'aceptada',
-          description: 'Propuesta aceptada; falta la confirmación de ambas partes',
+          description:
+              'Propuesta aceptada; falta la confirmación de ambas partes',
         ),
       if (n.buyerConfirmedAt != null)
         TimelineEvent(
@@ -541,10 +760,13 @@ class MockOfferRepository implements OfferRepository {
           type: 'confirmada',
           description: 'Trato confirmado por ambas partes',
         ),
-      if (n.status == NegotiationStatus.rejected || n.status == NegotiationStatus.cancelled)
+      if (n.status == NegotiationStatus.rejected ||
+          n.status == NegotiationStatus.cancelled)
         TimelineEvent(
           at: n.updatedAt,
-          type: n.status == NegotiationStatus.rejected ? 'rechazada' : 'cancelada',
+          type: n.status == NegotiationStatus.rejected
+              ? 'rechazada'
+              : 'cancelada',
           description: (n.status == NegotiationStatus.rejected
                   ? 'Negociación rechazada'
                   : 'Negociación cancelada') +

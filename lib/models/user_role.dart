@@ -4,7 +4,16 @@
 /// exportador colombiano e importador europeo. [staff] es el personal del
 /// panel de administración (REQ-24 / REQ-33): no se registra desde la app, se
 /// asigna al agregarlo a `staff_members` en Supabase.
-enum UserRole { exportador, importador, staff }
+enum UserRole {
+  exportador('Exportador · Colombia', 'Exportador'),
+  importador('Importador · UE', 'Importador'),
+  staff('Equipo AgroTrade', 'Staff');
+
+  final String label;
+  final String shortLabel;
+
+  const UserRole(this.label, this.shortLabel);
+}
 
 /// Convierte el texto de la BD (`profiles.role`) en [UserRole].
 /// Cualquier valor desconocido se trata como importador (igual que la BD).

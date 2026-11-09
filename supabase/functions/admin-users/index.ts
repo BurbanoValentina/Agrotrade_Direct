@@ -1,7 +1,8 @@
 // Edge Function admin-users (REQ-33 / REQ-24).
 //
 // Operaciones que necesitan la clave service_role (nunca va en la app):
-//   create_staff  Invita por correo a un empleado nuevo y le asigna permisos.
+//   create_staff  Invita por correo a un empleado nuevo y le asigna permisos
+//                 (o lo crea como gerente de solo consulta con is_manager: true).
 //   delete_user   Borra una cuenta de Supabase Auth (y su perfil en cascada).
 //
 // La app la llama con el token del usuario que inició sesión:
@@ -67,7 +68,7 @@ Deno.serve(async (req: Request) => {
 async function getStaff(admin: SupabaseClient, userId: string): Promise<StaffRow | null> {
   const { data, error } = await admin
     .from("staff_members")
-    .select("user_id, is_super_admin, permissions, is_active")
+    .select("user_id, is_super_admin, permissions, is_active, is_manager")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw error;
@@ -115,6 +116,7 @@ async function createStaff(
     user_id: invited.user.id,
     permissions: input.permissions,
     is_super_admin: input.isSuperAdmin,
+    is_manager: input.isManager,
     created_by: callerId,
   });
   if (insertError) {
@@ -128,6 +130,7 @@ async function createStaff(
     email: input.email,
     permissions: input.permissions,
     is_super_admin: input.isSuperAdmin,
+    is_manager: input.isManager,
     invited: true,
   };
 }

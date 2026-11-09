@@ -54,15 +54,23 @@ class AppUser {
     );
   }
 
-  AppUser copyWith({bool? mustSetPassword}) {
+  AppUser copyWith({
+    String? name,
+    String? email,
+    UserRole? role,
+    String? companyName,
+    String? country,
+    bool? isTester,
+    bool? mustSetPassword,
+  }) {
     return AppUser(
       id: id,
-      name: name,
-      email: email,
-      role: role,
-      companyName: companyName,
-      country: country,
-      isTester: isTester,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      role: role ?? this.role,
+      companyName: companyName ?? this.companyName,
+      country: country ?? this.country,
+      isTester: isTester ?? this.isTester,
       mustSetPassword: mustSetPassword ?? this.mustSetPassword,
     );
   }

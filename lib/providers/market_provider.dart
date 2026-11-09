@@ -110,61 +110,105 @@ class MarketProvider extends ChangeNotifier {
     }).toList();
   }
 
-  /// Carga la lista inicial de ofertas desde el repositorio
-  Future<void> loadOffers() async {
-    _setLoading(true);
-    try {
-      _offers = await _repository.fetchOffers();
-      _errorMessage = null;
-    } catch (e) {
-      _errorMessage = 'No pudimos cargar las ofertas del mercado.';
-    } finally {
-      _setLoading(false);
-    }
-  }
-
   /// REQ-06 a REQ-10: Publica una nueva oferta en el mercado
+  /// REQ-06 a REQ-10: publica la oferta en Supabase y la agrega al Market con
+  /// su id real. Devuelve `false` con el motivo en [lastError] si se rechaza.
   Future<bool> addOffer(CropOffer offer) async {
+    _lastError = null;
     try {
-      _offers.insert(0, offer);
+      final saved = await _repository.publishOffer(offer);
+      _offers.insert(0, saved);
+      _lastError = null;
       notifyListeners();
       return true;
+    } on RepositoryException catch (e) {
+      _lastError = e.message;
+      return false;
     } catch (e) {
+      _lastError = 'No se pudo publicar la oferta.';
+      notifyListeners();
       return false;
     }
   }
 
-  /// REQ-16: Envía una contraoferta de precio
-  Future<bool> sendCounterOffer(String offerId, double newPrice) async {
+  /// Ajusta precio, cantidad, destino o certificaciones de una oferta propia.
+  Future<bool> updateOffer(
+    String offerId, {
+    double? askPricePerMt,
+    double? volumeMt,
+    String? destinationCountry,
+    List<String>? certifications,
+  }) {
+    return _replaceOffer(() => _repository.updateOffer(
+          offerId,
+          askPricePerMt: askPricePerMt,
+          volumeMt: volumeMt,
+          destinationCountry: destinationCountry,
+          certifications: certifications,
+        ));
+  }
+
+  /// Retira una oferta propia del Market (queda `cerrada`).
+  Future<bool> closeOffer(String offerId) =>
+      _replaceOffer(() => _repository.closeOffer(offerId));
+
+  Future<bool> _replaceOffer(Future<CropOffer> Function() action) async {
     try {
-      final success = await _repository.sendCounterOffer(
+      final updated = await action();
+      final index = _offers.indexWhere((o) => o.id == updated.id);
+      if (index != -1) _offers[index] = updated;
+      _lastError = null;
+      notifyListeners();
+      return true;
+    } on RepositoryException catch (e) {
+      _lastError = e.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// REQ-14 / REQ-16: envía una solicitud de compra. Devuelve `true` si se envió; si no,
+  /// el motivo queda en [lastError] para mostrarlo al usuario.
+  Future<bool> sendCounterOffer(
+    String offerId,
+    double proposedPrice, {
+    double? volumeMt,
+    String? notes,
+  }) async {
+    try {
+      await _repository.sendCounterOffer(
         offerId: offerId,
-        proposedPricePerMt: newPrice,
+        proposedPricePerMt: proposedPrice,
+        volumeMt: volumeMt,
+        notes: notes,
       );
-      if (success) {
-        final index = _offers.indexWhere((o) => o.id == offerId);
-        if (index != -1) {
-          final old = _offers[index];
-          _offers[index] = CropOffer(
-            id: old.id,
-            cropType: old.cropType,
-            variety: old.variety,
-            originRegion: old.originRegion,
-            originCountry: old.originCountry,
-            askPricePerMt: newPrice,
-            volumeMt: old.volumeMt,
-            destinationCountry: old.destinationCountry,
-            certifications: old.certifications,
-            sellerName: old.sellerName,
-            sellerRating: old.sellerRating,
-            sellerTrades: old.sellerTrades,
-            status: OfferStatus.negociando,
-            postedAt: old.postedAt,
-          );
-          notifyListeners();
-        }
+      _lastError = null;
+      // Actualizar estado local de la oferta
+      final index = _offers.indexWhere((o) => o.id == offerId);
+      if (index != -1) {
+        final old = _offers[index];
+        _offers[index] = CropOffer(
+          id: old.id,
+          cropType: old.cropType,
+          variety: old.variety,
+          originRegion: old.originRegion,
+          originCountry: old.originCountry,
+          askPricePerMt: proposedPrice,
+          volumeMt: old.volumeMt,
+          destinationCountry: old.destinationCountry,
+          certifications: old.certifications,
+          sellerName: old.sellerName,
+          sellerRating: old.sellerRating,
+          sellerTrades: old.sellerTrades,
+          status: OfferStatus.negociando,
+          postedAt: old.postedAt,
+        );
+        notifyListeners();
       }
-      return success;
+      return true;
+    } on RepositoryException catch (e) {
+      _lastError = e.message;
+      return false;
     } catch (e) {
       return false;
     }
@@ -180,13 +224,20 @@ class MarketProvider extends ChangeNotifier {
   void setAdvancedFilterOptions(MarketFilterOptions options) {
     _filterOptions = options;
     notifyListeners();
+  }
+
+  /// Recarga las ofertas desde el repositorio.
+  Future<void> loadOffers() async {
     _isLoading = true;
     _loadError = null;
     notifyListeners();
     try {
-      _allOffers = await _repository.fetchOffers();
+      _offers = await _repository.fetchOffers();
+      _errorMessage = null;
     } on RepositoryException catch (e) {
       _loadError = e.message;
+    } catch (e) {
+      _errorMessage = 'No pudimos cargar las ofertas del mercado.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -204,31 +255,5 @@ class MarketProvider extends ChangeNotifier {
   void setQuery(String query) {
     _searchQuery = query;
     notifyListeners();
-  }
-
-  void _setLoading(bool value) {
-    _isLoading = value;
-    notifyListeners();
-  /// REQ-14: envía una solicitud de compra. Devuelve `true` si se envió; si no,
-  /// el motivo queda en [lastError] para mostrarlo al usuario.
-  Future<bool> sendCounterOffer(
-    String offerId,
-    double proposedPrice, {
-    double? volumeMt,
-    String? notes,
-  }) async {
-    try {
-      await _repository.sendCounterOffer(
-        offerId: offerId,
-        proposedPricePerMt: proposedPrice,
-        volumeMt: volumeMt,
-        notes: notes,
-      );
-      _lastError = null;
-      return true;
-    } on RepositoryException catch (e) {
-      _lastError = e.message;
-      return false;
-    }
   }
 }
